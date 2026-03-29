@@ -1,50 +1,20 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-
-function getStoredSessionUser() {
-  try {
-    const rawSession = localStorage.getItem("auth_demo_session");
-
-    if (!rawSession) {
-      return null;
-    }
-
-    const parsedSession = JSON.parse(rawSession);
-    return parsedSession?.user || null;
-  } catch (_error) {
-    return null;
-  }
-}
-
-function formatCurrency(price) {
-  if (typeof price !== "number") {
-    return "Lien he";
-  }
-
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(price);
-}
-
-function getDisplayImage(images = []) {
-  const validImage = images.find(
-    (image) =>
-      image && typeof image === "string" && !image.includes("placehold.co"),
-  );
-
-  return validImage || "";
-}
+import {
+  API_BASE_URL,
+  formatCurrency,
+  getDisplayImage,
+  getStoredSessionUser,
+} from "../../utils/storefront";
 
 function ProductCard({ product }) {
   const image = getDisplayImage(product.images);
 
   return (
-    <article className="overflow-hidden rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75">
+    <Link
+      className="overflow-hidden rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 no-underline transition hover:-translate-y-1"
+      to={`/san-pham/${product.slug}`}
+    >
       <div className="relative aspect-[4/3] overflow-hidden">
         {image ? (
           <img
@@ -82,12 +52,10 @@ function ProductCard({ product }) {
 
         <div className="mt-5 flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-start">
           <strong className="text-lg">{formatCurrency(product.price)}</strong>
-          <Link className="font-bold text-[#8b6243] no-underline" to="/login">
-            Dang nhap de xem chi tiet
-          </Link>
+          <span className="font-bold text-[#8b6243]">Xem chi tiet</span>
         </div>
       </div>
-    </article>
+    </Link>
   );
 }
 
@@ -98,7 +66,10 @@ function CategoryCard({ category }) {
     !category.image.includes("placehold.co");
 
   return (
-    <article className="overflow-hidden rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75">
+    <Link
+      className="overflow-hidden rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 no-underline transition hover:-translate-y-1"
+      to={`/danh-muc/${category.slug}`}
+    >
       <div className="relative aspect-[5/4] overflow-hidden">
         {hasRealImage ? (
           <img
@@ -116,8 +87,9 @@ function CategoryCard({ category }) {
         <p className="mt-3 leading-7 text-[#655247]">
           {category.description || "Danh muc nay chua co mo ta."}
         </p>
+        <div className="mt-5 font-bold text-[#8b6243]">Xem san pham</div>
       </div>
-    </article>
+    </Link>
   );
 }
 
