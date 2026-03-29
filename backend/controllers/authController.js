@@ -42,7 +42,8 @@ async function register(req, res) {
       email: email.toLowerCase().trim(),
       password,
       fullName: fullName?.trim() || "",
-      phone: phone?.trim() || ""
+      phone: phone?.trim() || "",
+      role: "customer"
     });
 
     const token = createToken(user._id.toString());
@@ -117,7 +118,23 @@ async function login(req, res) {
   }
 }
 
+async function getMe(req, res) {
+  return res.status(200).json({
+    message: "Lay thong tin nguoi dung thanh cong.",
+    user: sanitizeUser(req.user)
+  });
+}
+
+async function getAdminAccess(req, res) {
+  return res.status(200).json({
+    message: "Chao mung admin.",
+    user: sanitizeUser(req.user)
+  });
+}
+
 module.exports = {
   login,
-  register
+  register,
+  getMe,
+  getAdminAccess
 };

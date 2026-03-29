@@ -89,7 +89,7 @@ const productSchema = new mongoose.Schema(
     },
     images: {
       type: [String],
-      default: ["https://placehold.co/800x600?text=Interior+Product"]
+      default: []
     },
     tags: {
       type: [String],

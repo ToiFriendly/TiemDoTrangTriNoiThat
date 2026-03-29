@@ -2,10 +2,14 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
-const authRoutes = require("./routes/authRoutes");
-const requestLogger = require("./middlewares/requestLogger");
 
 dotenv.config();
+
+const authRoutes = require("./routes/authRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const homeRoutes = require("./routes/homeRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
+const requestLogger = require("./middlewares/requestLogger");
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -17,12 +21,14 @@ app.use(
   })
 );
 app.use(express.json());
-
 app.get("/api/health", (_req, res) => {
   res.status(200).json({ message: "Backend auth is running." });
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/home", homeRoutes);
+app.use("/api/uploads", uploadRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);

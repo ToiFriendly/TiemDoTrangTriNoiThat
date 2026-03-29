@@ -33,7 +33,7 @@ const uploadSchema = new mongoose.Schema(
     },
     folder: {
       type: String,
-      default: "uploads",
+      default: "cloudinary",
       trim: true
     },
     publicId: {

@@ -20,7 +20,7 @@ const categorySchema = new mongoose.Schema(
     },
     image: {
       type: String,
-      default: "https://placehold.co/600x400?text=Category"
+      default: ""
     },
     parentCategory: {
       type: mongoose.Schema.Types.ObjectId,
