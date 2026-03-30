@@ -1,0 +1,9 @@
+# Environment files
+.env
+**/.env
+.env.*
+**/.env.*
+
+# Local reference/content directories
+GEMINI/
+EXAMPLECODE/
