@@ -4,14 +4,18 @@ const {
   listAdminCategories,
   createCategory,
   updateCategory,
-  deleteCategory
+  deleteCategory,
 } = require("../controllers/categoryController");
 const {
   listAdminProducts,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
 } = require("../controllers/productController");
+const {
+  approveOrder,
+  listAdminOrders,
+} = require("../controllers/orderAdminController");
 
 const router = express.Router();
 
@@ -26,5 +30,8 @@ router.get("/products", listAdminProducts);
 router.post("/products", createProduct);
 router.put("/products/:id", updateProduct);
 router.delete("/products/:id", deleteProduct);
+
+router.get("/orders", listAdminOrders);
+router.patch("/orders/:id/approve", approveOrder);
 
 module.exports = router;
