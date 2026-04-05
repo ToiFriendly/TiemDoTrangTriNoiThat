@@ -3,7 +3,12 @@ const Cart = require("../schemas/cart");
 const Order = require("../schemas/order");
 const OrderItem = require("../schemas/orderItem");
 const Product = require("../schemas/product");
-const { createMomoPayment, parseExtraData, verifyPaymentResultSignature } = require("../utils/momo");
+const {
+  createMomoPayment,
+  parseExtraData,
+  verifyPaymentResultSignature,
+} = require("../utils/momo");
+const { emitToAdmins } = require("../utils/socket");
 
 function createHttpError(statusCode, message) {
   const error = new Error(message);
@@ -21,19 +26,25 @@ function getDefaultAddress(user) {
     return null;
   }
 
-  return user.addresses.find((address) => address.isDefault) || user.addresses[0];
+  return (
+    user.addresses.find((address) => address.isDefault) || user.addresses[0]
+  );
 }
 
 function buildShippingAddress(input, user) {
   const defaultAddress = getDefaultAddress(user);
   const shippingAddress = {
-    fullName: input?.fullName?.trim() || defaultAddress?.fullName || user.fullName || "",
+    fullName:
+      input?.fullName?.trim() ||
+      defaultAddress?.fullName ||
+      user.fullName ||
+      "",
     phone: input?.phone?.trim() || defaultAddress?.phone || user.phone || "",
     street: input?.street?.trim() || defaultAddress?.street || "",
     ward: input?.ward?.trim() || defaultAddress?.ward || "",
     district: input?.district?.trim() || defaultAddress?.district || "",
     city: input?.city?.trim() || defaultAddress?.city || "",
-    country: input?.country?.trim() || defaultAddress?.country || "Viet Nam"
+    country: input?.country?.trim() || defaultAddress?.country || "Viet Nam",
   };
 
   if (
@@ -64,12 +75,12 @@ function mapCartItem(item) {
       images: product.images,
       price: product.price,
       quantityInStock: product.quantityInStock,
-      status: product.status
+      status: product.status,
     },
     quantity: item.quantity,
     unitPrice: item.unitPrice,
     lineTotal: item.quantity * item.unitPrice,
-    addedAt: item.addedAt
+    addedAt: item.addedAt,
   };
 }
 
@@ -78,7 +89,7 @@ function emptyCartResponse() {
     items: [],
     totalQuantity: 0,
     totalAmount: 0,
-    updatedAt: null
+    updatedAt: null,
   };
 }
 
@@ -96,7 +107,7 @@ function mapCart(cart) {
     items,
     totalQuantity,
     totalAmount,
-    updatedAt: cart.updatedAt
+    updatedAt: cart.updatedAt,
   };
 }
 
@@ -108,13 +119,13 @@ function mapOrderItem(item) {
           _id: item.product._id,
           name: item.product.name,
           slug: item.product.slug,
-          images: item.product.images
+          images: item.product.images,
         }
       : {
           _id: item.product,
           name: item.productName,
           slug: item.productSlug,
-          images: item.productImage ? [item.productImage] : []
+          images: item.productImage ? [item.productImage] : [],
         },
     productName: item.productName,
     productSlug: item.productSlug,
@@ -123,7 +134,7 @@ function mapOrderItem(item) {
     unitPrice: item.unitPrice,
     quantity: item.quantity,
     lineTotal: item.lineTotal,
-    note: item.note
+    note: item.note,
   };
 }
 
@@ -149,8 +160,23 @@ function mapOrder(order) {
     placedAt: order.placedAt,
     paidAt: order.paidAt,
     cancelledAt: order.cancelledAt,
-    items: Array.isArray(order.items) ? order.items.map(mapOrderItem) : []
+    items: Array.isArray(order.items) ? order.items.map(mapOrderItem) : [],
   };
+}
+
+function notifyAdminsAboutPaidOrder(order) {
+  if (!order) {
+    return;
+  }
+
+  emitToAdmins("admin:order:paid", {
+    orderId: order._id?.toString(),
+    orderCode: order.orderCode,
+    paymentStatus: order.paymentStatus,
+    orderStatus: order.orderStatus,
+    totalAmount: order.totalAmount,
+    paidAt: order.paidAt || null,
+  });
 }
 
 async function findCartByUser(userId, session) {
@@ -163,7 +189,7 @@ async function getOrCreateCart(userId, session) {
   if (!cart) {
     cart = new Cart({
       user: userId,
-      items: []
+      items: [],
     });
     await cart.save({ session });
   }
@@ -179,7 +205,7 @@ async function saveCart(cart, session) {
 async function loadCartForResponse(userId) {
   const cart = await Cart.findOne({ user: userId }).populate(
     "items.product",
-    "name slug images price quantityInStock status isDeleted"
+    "name slug images price quantityInStock status isDeleted",
   );
 
   return mapCart(cart);
@@ -189,11 +215,15 @@ async function findActiveProductById(productId, session) {
   return Product.findOne({
     _id: productId,
     isDeleted: false,
-    status: "active"
+    status: "active",
   }).session(session || null);
 }
 
-async function ensureCartQuantityAvailable(productId, desiredQuantity, session) {
+async function ensureCartQuantityAvailable(
+  productId,
+  desiredQuantity,
+  session,
+) {
   const product = await findActiveProductById(productId, session);
 
   if (!product) {
@@ -222,9 +252,11 @@ async function reserveInventoryForCartItems(cartItems, session) {
   const productIds = cartItems.map((item) => item.product);
   const products = await Product.find({
     _id: { $in: productIds },
-    isDeleted: false
+    isDeleted: false,
   }).session(session);
-  const productMap = new Map(products.map((product) => [product._id.toString(), product]));
+  const productMap = new Map(
+    products.map((product) => [product._id.toString(), product]),
+  );
   const orderItemsPayload = [];
 
   for (const cartItem of cartItems) {
@@ -239,35 +271,38 @@ async function reserveInventoryForCartItems(cartItems, session) {
         _id: product._id,
         isDeleted: false,
         status: "active",
-        quantityInStock: { $gte: cartItem.quantity }
+        quantityInStock: { $gte: cartItem.quantity },
       },
       {
         $inc: {
-          quantityInStock: -cartItem.quantity
-        }
+          quantityInStock: -cartItem.quantity,
+        },
       },
       {
         returnDocument: "after",
-        session
-      }
+        session,
+      },
     );
 
     if (!reservedProduct) {
       throw createHttpError(409, "Khong du hang.");
     }
 
-    const unitPrice = cartItem.unitPrice > 0 ? cartItem.unitPrice : product.price;
+    const unitPrice =
+      cartItem.unitPrice > 0 ? cartItem.unitPrice : product.price;
 
     orderItemsPayload.push({
       product: product._id,
       productName: product.name,
       productSlug: product.slug,
-      productImage: Array.isArray(product.images) ? product.images[0] || "" : "",
+      productImage: Array.isArray(product.images)
+        ? product.images[0] || ""
+        : "",
       sku: product.sku,
       unitPrice,
       quantity: cartItem.quantity,
       lineTotal: unitPrice * cartItem.quantity,
-      note: ""
+      note: "",
     });
   }
 
@@ -278,9 +313,9 @@ async function createOrderItems(orderId, itemsPayload, session) {
   return OrderItem.insertMany(
     itemsPayload.map((item) => ({
       ...item,
-      order: orderId
+      order: orderId,
     })),
-    { session }
+    { session },
   );
 }
 
@@ -289,7 +324,10 @@ async function clearCart(cart, session) {
   await saveCart(cart, session);
 }
 
-async function createOrderFromCart({ user, cart, shippingAddress, paymentMethod, note }, session) {
+async function createOrderFromCart(
+  { user, cart, shippingAddress, paymentMethod, note },
+  session,
+) {
   const reservedItems = await reserveInventoryForCartItems(cart.items, session);
   const subtotal = reservedItems.reduce((sum, item) => sum + item.lineTotal, 0);
   const orderCode = await generateOrderCode(session);
@@ -306,12 +344,16 @@ async function createOrderFromCart({ user, cart, shippingAddress, paymentMethod,
     shippingFee: 0,
     discountAmount: 0,
     totalAmount: subtotal,
-    note: note?.trim() || ""
+    note: note?.trim() || "",
   });
 
   await order.save({ session });
 
-  const createdOrderItems = await createOrderItems(order._id, reservedItems, session);
+  const createdOrderItems = await createOrderItems(
+    order._id,
+    reservedItems,
+    session,
+  );
   order.items = createdOrderItems.map((item) => item._id);
   await order.save({ session });
   await clearCart(cart, session);
@@ -319,7 +361,7 @@ async function createOrderFromCart({ user, cart, shippingAddress, paymentMethod,
   return {
     orderId: order._id,
     orderCode,
-    createdOrderItems
+    createdOrderItems,
   };
 }
 
@@ -328,8 +370,8 @@ async function loadOrderById(orderId) {
     path: "items",
     populate: {
       path: "product",
-      select: "name slug images"
-    }
+      select: "name slug images",
+    },
   });
 }
 
@@ -337,13 +379,13 @@ async function loadOrderByCode(orderCode, userId) {
   return Order.findOne({
     orderCode,
     user: userId,
-    isDeleted: false
+    isDeleted: false,
   }).populate({
     path: "items",
     populate: {
       path: "product",
-      select: "name slug images"
-    }
+      select: "name slug images",
+    },
   });
 }
 
@@ -352,7 +394,7 @@ function mergeOrderItemsBackToCart(cart, orderItems) {
 
   for (const orderItem of orderItems) {
     const existingItem = mergedItems.find(
-      (item) => item.product.toString() === orderItem.product.toString()
+      (item) => item.product.toString() === orderItem.product.toString(),
     );
 
     if (existingItem) {
@@ -364,7 +406,7 @@ function mergeOrderItemsBackToCart(cart, orderItems) {
         product: orderItem.product,
         quantity: orderItem.quantity,
         unitPrice: orderItem.unitPrice,
-        addedAt: new Date()
+        addedAt: new Date(),
       });
     }
   }
@@ -378,10 +420,10 @@ async function restoreInventory(orderItems, session) {
       orderItem.product,
       {
         $inc: {
-          quantityInStock: orderItem.quantity
-        }
+          quantityInStock: orderItem.quantity,
+        },
       },
-      { session }
+      { session },
     );
   }
 }
@@ -395,7 +437,7 @@ async function restoreFailedOrder(orderCode, paymentPayload) {
     await session.withTransaction(async () => {
       const order = await Order.findOne({
         orderCode,
-        isDeleted: false
+        isDeleted: false,
       }).session(session);
 
       if (!order) {
@@ -412,7 +454,9 @@ async function restoreFailedOrder(orderCode, paymentPayload) {
         return;
       }
 
-      const orderItems = await OrderItem.find({ order: order._id }).session(session);
+      const orderItems = await OrderItem.find({ order: order._id }).session(
+        session,
+      );
       const cart = await getOrCreateCart(order.user, session);
 
       await restoreInventory(orderItems, session);
@@ -444,11 +488,12 @@ async function markOrderPaid(orderCode, paymentPayload) {
 
   try {
     let updatedOrderId = null;
+    let shouldNotifyAdmins = false;
 
     await session.withTransaction(async () => {
       const order = await Order.findOne({
         orderCode,
-        isDeleted: false
+        isDeleted: false,
       }).session(session);
 
       if (!order) {
@@ -483,9 +528,18 @@ async function markOrderPaid(orderCode, paymentPayload) {
 
       await order.save({ session });
       updatedOrderId = order._id;
+      shouldNotifyAdmins = true;
     });
 
-    return updatedOrderId ? loadOrderById(updatedOrderId) : null;
+    const updatedOrder = updatedOrderId
+      ? await loadOrderById(updatedOrderId)
+      : null;
+
+    if (shouldNotifyAdmins) {
+      notifyAdminsAboutPaidOrder(updatedOrder);
+    }
+
+    return updatedOrder;
   } finally {
     await session.endSession();
   }
@@ -533,10 +587,13 @@ async function addToCart(req, res, next) {
       return res.status(400).json({ message: "So luong khong hop le." });
     }
 
-    const product = await ensureCartQuantityAvailable(productId, parsedQuantity);
+    const product = await ensureCartQuantityAvailable(
+      productId,
+      parsedQuantity,
+    );
     const cart = await getOrCreateCart(req.user._id);
     const existingItem = cart.items.find(
-      (item) => item.product.toString() === productId
+      (item) => item.product.toString() === productId,
     );
 
     if (existingItem) {
@@ -550,7 +607,7 @@ async function addToCart(req, res, next) {
         product: product._id,
         quantity: parsedQuantity,
         unitPrice: product.price,
-        addedAt: new Date()
+        addedAt: new Date(),
       });
     }
 
@@ -559,7 +616,7 @@ async function addToCart(req, res, next) {
 
     return res.status(201).json({
       message: "Da them san pham vao gio hang.",
-      cart: responseCart
+      cart: responseCart,
     });
   } catch (error) {
     if (error.statusCode) {
@@ -585,17 +642,24 @@ async function updateCartItem(req, res, next) {
       return res.status(400).json({ message: "So luong khong hop le." });
     }
 
-    const product = await ensureCartQuantityAvailable(productId, parsedQuantity);
+    const product = await ensureCartQuantityAvailable(
+      productId,
+      parsedQuantity,
+    );
     const cart = await findCartByUser(req.user._id);
 
     if (!cart) {
       return res.status(404).json({ message: "Gio hang dang trong." });
     }
 
-    const cartItem = cart.items.find((item) => item.product.toString() === productId);
+    const cartItem = cart.items.find(
+      (item) => item.product.toString() === productId,
+    );
 
     if (!cartItem) {
-      return res.status(404).json({ message: "San pham khong co trong gio hang." });
+      return res
+        .status(404)
+        .json({ message: "San pham khong co trong gio hang." });
     }
 
     cartItem.quantity = parsedQuantity;
@@ -604,7 +668,7 @@ async function updateCartItem(req, res, next) {
 
     return res.status(200).json({
       message: "Da cap nhat gio hang.",
-      cart: await loadCartForResponse(req.user._id)
+      cart: await loadCartForResponse(req.user._id),
     });
   } catch (error) {
     if (error.statusCode) {
@@ -628,16 +692,18 @@ async function removeCartItem(req, res, next) {
     if (!cart) {
       return res.status(200).json({
         message: "Gio hang da trong.",
-        cart: emptyCartResponse()
+        cart: emptyCartResponse(),
       });
     }
 
-    cart.items = cart.items.filter((item) => item.product.toString() !== productId);
+    cart.items = cart.items.filter(
+      (item) => item.product.toString() !== productId,
+    );
     await saveCart(cart);
 
     return res.status(200).json({
       message: "Da xoa san pham khoi gio hang.",
-      cart: await loadCartForResponse(req.user._id)
+      cart: await loadCartForResponse(req.user._id),
     });
   } catch (error) {
     return next(error);
@@ -652,7 +718,7 @@ async function clearCartItems(req, res, next) {
 
     return res.status(200).json({
       message: "Da lam trong gio hang.",
-      cart: emptyCartResponse()
+      cart: emptyCartResponse(),
     });
   } catch (error) {
     return next(error);
@@ -664,7 +730,10 @@ async function checkout(req, res, next) {
 
   try {
     const paymentMethod = req.body.paymentMethod === "momo" ? "momo" : "cod";
-    const shippingAddress = buildShippingAddress(req.body.shippingAddress, req.user);
+    const shippingAddress = buildShippingAddress(
+      req.body.shippingAddress,
+      req.user,
+    );
     let checkoutResult = null;
 
     await session.withTransaction(async () => {
@@ -680,9 +749,9 @@ async function checkout(req, res, next) {
           cart,
           shippingAddress,
           paymentMethod,
-          note: req.body.note
+          note: req.body.note,
         },
-        session
+        session,
       );
     });
 
@@ -691,7 +760,7 @@ async function checkout(req, res, next) {
     if (paymentMethod !== "momo") {
       return res.status(201).json({
         message: "Dat hang thanh cong.",
-        order: mapOrder(order)
+        order: mapOrder(order),
       });
     }
 
@@ -706,8 +775,8 @@ async function checkout(req, res, next) {
           unitPrice: item.unitPrice,
           quantity: item.quantity,
           lineTotal: item.lineTotal,
-          note: item.note
-        }))
+          note: item.note,
+        })),
       );
 
       order.paymentReference = paymentResponse.requestId || "";
@@ -725,18 +794,19 @@ async function checkout(req, res, next) {
           payUrl: paymentResponse.payUrl,
           deeplink: paymentResponse.deeplink || "",
           qrCodeUrl: paymentResponse.qrCodeUrl || "",
-          requestId: paymentResponse.requestId
-        }
+          requestId: paymentResponse.requestId,
+        },
       });
     } catch (paymentError) {
       const restoredOrder = await restoreFailedOrder(order.orderCode, {
         resultCode: -1,
-        message: paymentError.message
+        message: paymentError.message,
       });
 
       return res.status(502).json({
-        message: "Tao lien ket thanh toan MoMo that bai. Gio hang da duoc khoi phuc.",
-        order: restoredOrder ? mapOrder(restoredOrder) : null
+        message:
+          "Tao lien ket thanh toan MoMo that bai. Gio hang da duoc khoi phuc.",
+        order: restoredOrder ? mapOrder(restoredOrder) : null,
       });
     }
   } catch (error) {
@@ -759,7 +829,7 @@ async function getOrderDetail(req, res, next) {
     }
 
     return res.status(200).json({
-      order: mapOrder(order)
+      order: mapOrder(order),
     });
   } catch (error) {
     return next(error);
@@ -772,7 +842,7 @@ async function handleMomoPaymentResult(req, res, next) {
 
     return res.status(200).json({
       message: "Da cap nhat ket qua thanh toan.",
-      order: order ? mapOrder(order) : null
+      order: order ? mapOrder(order) : null,
     });
   } catch (error) {
     if (error.statusCode) {
@@ -791,5 +861,5 @@ module.exports = {
   getOrderDetail,
   handleMomoPaymentResult,
   removeCartItem,
-  updateCartItem
+  updateCartItem,
 };
