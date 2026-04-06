@@ -4,14 +4,23 @@ const {
   listAdminCategories,
   createCategory,
   updateCategory,
-  deleteCategory
+  deleteCategory,
 } = require("../controllers/categoryController");
 const {
   listAdminProducts,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
 } = require("../controllers/productController");
+const {
+  approveOrder,
+  listAdminOrders,
+} = require("../controllers/orderAdminController");
+const {
+  createAdminMessage,
+  listAdminConversations,
+  listAdminMessagesByCustomer,
+} = require("../controllers/chatController");
 
 const router = express.Router();
 
@@ -26,5 +35,12 @@ router.get("/products", listAdminProducts);
 router.post("/products", createProduct);
 router.put("/products/:id", updateProduct);
 router.delete("/products/:id", deleteProduct);
+
+router.get("/orders", listAdminOrders);
+router.patch("/orders/:id/approve", approveOrder);
+
+router.get("/chat/conversations", listAdminConversations);
+router.get("/chat/messages/:customerId", listAdminMessagesByCustomer);
+router.post("/chat/messages", createAdminMessage);
 
 module.exports = router;
