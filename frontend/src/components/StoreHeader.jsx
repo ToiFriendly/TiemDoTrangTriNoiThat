@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { connectSocket, disconnectSocket } from "../utils/socket";
+import CustomerChatBubble from "./CustomerChatBubble";
 import {
   API_BASE_URL,
   formatDateTime,
@@ -119,103 +120,107 @@ function StoreHeader() {
   }
 
   return (
-    <header className="mb-6 flex items-center justify-between gap-4 max-md:flex-col max-md:items-start">
-      <Link
-        className="text-base font-extrabold tracking-[0.06em] uppercase no-underline"
-        to="/"
-      >
-        Tiem Do Trang Tri Noi That
-      </Link>
-
-      <nav className="flex flex-wrap gap-3 max-md:w-full">
+    <>
+      <header className="mb-6 flex items-center justify-between gap-4 max-md:flex-col max-md:items-start">
         <Link
-          className="rounded-full border border-[rgba(95,63,42,0.1)] bg-white/75 px-4 py-2.5 no-underline max-md:w-full"
+          className="text-base font-extrabold tracking-[0.06em] uppercase no-underline"
           to="/"
         >
-          Trang chu
+          Tiem Do Trang Tri Noi That
         </Link>
-        {sessionUser?.role === "customer" ? (
+
+        <nav className="flex flex-wrap gap-3 max-md:w-full">
           <Link
             className="rounded-full border border-[rgba(95,63,42,0.1)] bg-white/75 px-4 py-2.5 no-underline max-md:w-full"
-            to="/gio-hang"
+            to="/"
           >
-            Gio hang ({cartCount})
+            Trang chu
           </Link>
-        ) : null}
-        {sessionUser?.role === "customer" ? (
-          <div className="relative max-md:w-full">
-            <button
-              type="button"
-              className="rounded-full border border-[rgba(95,63,42,0.1)] bg-white/75 px-4 py-2.5 text-left max-md:w-full"
-              onClick={() => setNotificationOpen((prev) => !prev)}
+          {sessionUser?.role === "customer" ? (
+            <Link
+              className="rounded-full border border-[rgba(95,63,42,0.1)] bg-white/75 px-4 py-2.5 no-underline max-md:w-full"
+              to="/gio-hang"
             >
-              Thong bao {unreadCount > 0 ? `(${unreadCount})` : ""}
-            </button>
-            {notificationOpen ? (
-              <div className="absolute right-0 z-20 mt-2 w-[22rem] max-w-[90vw] rounded-2xl border border-[rgba(95,63,42,0.16)] bg-[#fffaf5] p-3 shadow-[0_14px_30px_rgba(79,52,35,0.15)]">
-                <div className="mb-2 text-sm font-semibold text-[#5d493f]">
-                  Thong bao don hang
+              Gio hang ({cartCount})
+            </Link>
+          ) : null}
+          {sessionUser?.role === "customer" ? (
+            <div className="relative max-md:w-full">
+              <button
+                type="button"
+                className="rounded-full border border-[rgba(95,63,42,0.1)] bg-white/75 px-4 py-2.5 text-left max-md:w-full"
+                onClick={() => setNotificationOpen((prev) => !prev)}
+              >
+                Thong bao {unreadCount > 0 ? `(${unreadCount})` : ""}
+              </button>
+              {notificationOpen ? (
+                <div className="absolute right-0 z-20 mt-2 w-[22rem] max-w-[90vw] rounded-2xl border border-[rgba(95,63,42,0.16)] bg-[#fffaf5] p-3 shadow-[0_14px_30px_rgba(79,52,35,0.15)]">
+                  <div className="mb-2 text-sm font-semibold text-[#5d493f]">
+                    Thong bao don hang
+                  </div>
+                  {loadingNotifications ? (
+                    <div className="rounded-xl bg-white/80 px-3 py-2 text-sm">
+                      Dang tai thong bao...
+                    </div>
+                  ) : notifications.length ? (
+                    <div className="grid max-h-72 gap-2 overflow-y-auto">
+                      {notifications.map((notification) => (
+                        <button
+                          key={notification._id}
+                          type="button"
+                          className={`rounded-xl px-3 py-2 text-left ${
+                            notification.isRead
+                              ? "bg-white/70 text-[#5f4a3f]"
+                              : "bg-[#f5ebde] text-[#2f241f]"
+                          }`}
+                          onClick={() => handleMarkAsRead(notification)}
+                        >
+                          <div className="font-semibold">
+                            {notification.title}
+                          </div>
+                          <div className="mt-1 text-sm">
+                            {notification.message}
+                          </div>
+                          <div className="mt-1 text-xs text-[#816250]">
+                            {formatDateTime(notification.createdAt)}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl bg-white/80 px-3 py-2 text-sm text-[#6c564a]">
+                      Chua co thong bao nao.
+                    </div>
+                  )}
                 </div>
-                {loadingNotifications ? (
-                  <div className="rounded-xl bg-white/80 px-3 py-2 text-sm">
-                    Dang tai thong bao...
-                  </div>
-                ) : notifications.length ? (
-                  <div className="grid max-h-72 gap-2 overflow-y-auto">
-                    {notifications.map((notification) => (
-                      <button
-                        key={notification._id}
-                        type="button"
-                        className={`rounded-xl px-3 py-2 text-left ${
-                          notification.isRead
-                            ? "bg-white/70 text-[#5f4a3f]"
-                            : "bg-[#f5ebde] text-[#2f241f]"
-                        }`}
-                        onClick={() => handleMarkAsRead(notification)}
-                      >
-                        <div className="font-semibold">
-                          {notification.title}
-                        </div>
-                        <div className="mt-1 text-sm">
-                          {notification.message}
-                        </div>
-                        <div className="mt-1 text-xs text-[#816250]">
-                          {formatDateTime(notification.createdAt)}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-xl bg-white/80 px-3 py-2 text-sm text-[#6c564a]">
-                    Chua co thong bao nao.
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-        {sessionUser?.role === "admin" ? (
+              ) : null}
+            </div>
+          ) : null}
+          {sessionUser?.role === "admin" ? (
+            <Link
+              to="/admin"
+              className="rounded-full border border-[rgba(95,63,42,0.1)] bg-[#f3e5d7] px-4 py-2.5 font-semibold no-underline max-md:w-full"
+            >
+              Quan tri
+            </Link>
+          ) : null}
           <Link
-            to="/admin"
-            className="rounded-full border border-[rgba(95,63,42,0.1)] bg-[#f3e5d7] px-4 py-2.5 font-semibold no-underline max-md:w-full"
+            to="/login"
+            className={`rounded-full px-4 py-2.5 no-underline max-md:w-full ${
+              sessionUser
+                ? "bg-[#2f241f] font-bold text-[#fff8f0]"
+                : "border border-[rgba(95,63,42,0.1)] bg-white/75"
+            }`}
           >
-            Quan tri
+            {sessionUser
+              ? sessionUser.fullName || sessionUser.username
+              : "Dang nhap"}
           </Link>
-        ) : null}
-        <Link
-          to="/login"
-          className={`rounded-full px-4 py-2.5 no-underline max-md:w-full ${
-            sessionUser
-              ? "bg-[#2f241f] font-bold text-[#fff8f0]"
-              : "border border-[rgba(95,63,42,0.1)] bg-white/75"
-          }`}
-        >
-          {sessionUser
-            ? sessionUser.fullName || sessionUser.username
-            : "Dang nhap"}
-        </Link>
-      </nav>
-    </header>
+        </nav>
+      </header>
+
+      <CustomerChatBubble user={sessionUser} token={getStoredToken()} />
+    </>
   );
 }
 
