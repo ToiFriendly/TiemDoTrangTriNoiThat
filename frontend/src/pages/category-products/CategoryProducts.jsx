@@ -97,7 +97,7 @@ function CategoryProducts() {
 
         <div className="mb-6 flex flex-wrap gap-3 text-sm">
           <Link className="rounded-full bg-white/75 px-4 py-2 no-underline" to="/">
-            Trang chu
+            Trang chủ
           </Link>
           {category?.parentCategory?.slug ? (
             <Link
@@ -111,7 +111,7 @@ function CategoryProducts() {
 
         {loading ? (
           <div className="rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 p-6">
-            Dang tai danh muc...
+            Đang tải danh mục...
           </div>
         ) : error ? (
           <div className="rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 p-6 text-[#8a3d2f]">
@@ -134,7 +134,7 @@ function CategoryProducts() {
 
               <div className="flex flex-col justify-center">
                 <p className="text-xs tracking-[0.16em] text-[#8b6243] uppercase">
-                  Danh muc
+                  Danh mục sản phẩm
                 </p>
                 <h1 className="mt-3 text-4xl font-semibold md:text-5xl">
                   {category?.name || "Danh muc"}
@@ -143,7 +143,7 @@ function CategoryProducts() {
                   {category?.description || "Danh muc nay chua co mo ta."}
                 </p>
                 <div className="mt-6 inline-flex w-fit rounded-full bg-[#f3e5d7] px-4 py-2 font-semibold">
-                  {products.length} san pham
+                  {products.length} sản phẩm
                 </div>
               </div>
             </div>
@@ -157,7 +157,7 @@ function CategoryProducts() {
                 </div>
               ) : (
                 <div className="rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 p-6">
-                  Danh muc nay hien chua co san pham active de hien thi.
+                  Danh mục hiện tại chưa có sản phẩm active để hiển thị.
                 </div>
               )}
             </div>
