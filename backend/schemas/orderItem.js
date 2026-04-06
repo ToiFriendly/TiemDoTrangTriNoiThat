@@ -56,12 +56,11 @@ const orderItemSchema = new mongoose.Schema(
   }
 );
 
-orderItemSchema.pre("save", function (next) {
+orderItemSchema.pre("save", function () {
   this.lineTotal = this.unitPrice * this.quantity;
-  next();
 });
 
-orderItemSchema.pre("findOneAndUpdate", function (next) {
+orderItemSchema.pre("findOneAndUpdate", function () {
   const update = this.getUpdate() || {};
   const unitPrice = update.unitPrice ?? update.$set?.unitPrice;
   const quantity = update.quantity ?? update.$set?.quantity;
@@ -74,7 +73,6 @@ orderItemSchema.pre("findOneAndUpdate", function (next) {
     }
   }
 
-  next();
 });
 
 module.exports = mongoose.model("orderItem", orderItemSchema);

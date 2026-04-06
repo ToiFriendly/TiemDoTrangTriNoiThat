@@ -63,6 +63,12 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true
     },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true
+    },
     password: {
       type: String,
       required: [true, "Password is required"]
@@ -145,6 +151,7 @@ userSchema.pre("findOneAndUpdate", async function () {
 userSchema.set("toJSON", {
   transform: function (_doc, ret) {
     delete ret.password;
+    delete ret.googleId;
     delete ret.forgotPasswordToken;
     delete ret.forgotPasswordTokenExp;
     delete ret.__v;

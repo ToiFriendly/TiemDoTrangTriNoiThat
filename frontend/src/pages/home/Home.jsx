@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import StoreHeader from "../../components/StoreHeader";
 import {
   API_BASE_URL,
   formatCurrency,
   getDisplayImage,
-  getStoredSessionUser,
 } from "../../utils/storefront";
 
 function ProductCard({ product }) {
@@ -122,7 +122,6 @@ function SectionShell({ id, eyebrow, title, children }) {
 }
 
 function Home() {
-  const [sessionUser, setSessionUser] = useState(() => getStoredSessionUser());
   const [homeData, setHomeData] = useState({
     categories: [],
     featuredProducts: [],
@@ -175,76 +174,34 @@ function Home() {
     };
   }, []);
 
-  useEffect(() => {
-    function syncSessionUser() {
-      setSessionUser(getStoredSessionUser());
-    }
-
-    window.addEventListener("storage", syncSessionUser);
-
-    return () => {
-      window.removeEventListener("storage", syncSessionUser);
-    };
-  }, []);
-
   const { categories, featuredProducts, latestProducts } = homeData;
   const highlightProduct = featuredProducts[0] || latestProducts[0] || null;
 
   return (
     <main className="min-h-screen px-3 py-4 text-[#2f241f] md:px-6 md:py-6">
       <section className="mx-auto mb-6 w-full max-w-[1180px] overflow-hidden rounded-[32px] border border-[rgba(95,63,42,0.12)] bg-[rgba(255,251,245,0.82)] p-5 shadow-[0_20px_60px_rgba(79,52,35,0.08)] md:p-6">
-        <header className="mb-9 flex items-center justify-between gap-4 max-md:flex-col max-md:items-start">
-          <Link
-            className="text-base font-extrabold tracking-[0.06em] uppercase no-underline"
-            to="/"
-          >
-            Tiem Do Trang Tri Noi That
-          </Link>
+        <StoreHeader />
 
-          <nav className="flex flex-wrap gap-3 max-md:w-full">
-            <a
-              className="rounded-full border border-[rgba(95,63,42,0.1)] bg-white/75 px-4 py-2.5 no-underline max-md:w-full"
-              href="#danh-muc"
-            >
-              Danh muc
-            </a>
-            <a
-              className="rounded-full border border-[rgba(95,63,42,0.1)] bg-white/75 px-4 py-2.5 no-underline max-md:w-full"
-              href="#noi-bat"
-            >
-              Noi bat
-            </a>
-            <a
-              className="rounded-full border border-[rgba(95,63,42,0.1)] bg-white/75 px-4 py-2.5 no-underline max-md:w-full"
-              href="#moi-nhat"
-            >
-              Moi nhat
-            </a>
-            {sessionUser?.role === "admin" ? (
-              <Link
-                to="/admin"
-                className="rounded-full border border-[rgba(95,63,42,0.1)] bg-[#f3e5d7] px-4 py-2.5 font-semibold no-underline max-md:w-full"
-              >
-                Quan tri
-              </Link>
-            ) : null}
-            {sessionUser ? (
-              <Link
-                to="/login"
-                className="rounded-full bg-[#2f241f] px-4 py-2.5 font-bold text-[#fff8f0] no-underline max-md:w-full"
-              >
-                {sessionUser.fullName || sessionUser.username}
-              </Link>
-            ) : (
-              <Link
-                to="/login"
-                className="rounded-full border border-[rgba(95,63,42,0.1)] bg-white/75 px-4 py-2.5 no-underline max-md:w-full"
-              >
-                Dang nhap
-              </Link>
-            )}
-          </nav>
-        </header>
+        <div className="mb-9 flex flex-wrap gap-3">
+          <a
+            className="rounded-full border border-[rgba(95,63,42,0.1)] bg-white/75 px-4 py-2.5 no-underline"
+            href="#danh-muc"
+          >
+            Danh muc
+          </a>
+          <a
+            className="rounded-full border border-[rgba(95,63,42,0.1)] bg-white/75 px-4 py-2.5 no-underline"
+            href="#noi-bat"
+          >
+            Noi bat
+          </a>
+          <a
+            className="rounded-full border border-[rgba(95,63,42,0.1)] bg-white/75 px-4 py-2.5 no-underline"
+            href="#moi-nhat"
+          >
+            Moi nhat
+          </a>
+        </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="px-1 py-3">

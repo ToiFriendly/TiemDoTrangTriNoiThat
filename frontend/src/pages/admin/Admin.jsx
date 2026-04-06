@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { connectSocket, disconnectSocket } from "../../utils/socket";
+import AdminChatBubble from "../../components/AdminChatBubble";
+import { clearStoredSession, formatDateTime } from "../../utils/storefront";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -42,7 +45,7 @@ function getStoredSession() {
   try {
     const rawSession = localStorage.getItem("auth_demo_session");
     return rawSession ? JSON.parse(rawSession) : null;
-  } catch (_error) {
+  } catch {
     return null;
   }
 }
@@ -99,6 +102,8 @@ function Admin() {
   const [feedback, setFeedback] = useState("");
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [orderActionLoadingId, setOrderActionLoadingId] = useState("");
   const [categoryForm, setCategoryForm] = useState(categoryInitialState);
   const [productForm, setProductForm] = useState(productInitialState);
 
@@ -118,20 +123,47 @@ function Admin() {
       return;
     }
 
-    loadAdminData();
+    async function syncAdminData() {
+      try {
+        setLoading(true);
+        const config = headers(session.token);
+        const [categoryResponse, productResponse, orderResponse] =
+          await Promise.all([
+            axios.get(`${API_BASE_URL}/api/admin/categories`, config),
+            axios.get(`${API_BASE_URL}/api/admin/products`, config),
+            axios.get(`${API_BASE_URL}/api/admin/orders`, config),
+          ]);
+
+        setCategories(categoryResponse.data.categories || []);
+        setProducts(productResponse.data.products || []);
+        setOrders(orderResponse.data.orders || []);
+      } catch (error) {
+        setFeedback(
+          error.response?.data?.message ||
+            "Khong the tai du lieu quan tri luc nay.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    syncAdminData();
   }, [session]);
 
   async function loadAdminData() {
     try {
       setLoading(true);
       const config = headers(session.token);
-      const [categoryResponse, productResponse] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/admin/categories`, config),
-        axios.get(`${API_BASE_URL}/api/admin/products`, config),
-      ]);
+      const [categoryResponse, productResponse, orderResponse] =
+        await Promise.all([
+          axios.get(`${API_BASE_URL}/api/admin/categories`, config),
+          axios.get(`${API_BASE_URL}/api/admin/products`, config),
+          axios.get(`${API_BASE_URL}/api/admin/orders`, config),
+        ]);
 
       setCategories(categoryResponse.data.categories || []);
       setProducts(productResponse.data.products || []);
+      setOrders(orderResponse.data.orders || []);
     } catch (error) {
       setFeedback(
         error.response?.data?.message ||
@@ -141,6 +173,25 @@ function Admin() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (!session?.token || session?.user?.role !== "admin") {
+      return undefined;
+    }
+
+    const socket = connectSocket(session.token);
+
+    function syncOrdersWhenPaid() {
+      loadAdminData();
+      setFeedback("Co don hang vua thanh toan. Da dong bo danh sach.");
+    }
+
+    socket.on("admin:order:paid", syncOrdersWhenPaid);
+
+    return () => {
+      socket.off("admin:order:paid", syncOrdersWhenPaid);
+    };
+  }, [session]);
 
   function updateCategoryForm(field, value) {
     setCategoryForm((prev) => ({ ...prev, [field]: value }));
@@ -324,6 +375,32 @@ function Admin() {
     }
   }
 
+  async function handleApproveOrder(orderId) {
+    if (!orderId || orderActionLoadingId) {
+      return;
+    }
+
+    try {
+      setOrderActionLoadingId(orderId);
+      setFeedback("");
+
+      const response = await axios.patch(
+        `${API_BASE_URL}/api/admin/orders/${orderId}/approve`,
+        {},
+        headers(session.token),
+      );
+
+      setFeedback(response.data?.message || "Da duyet don hang.");
+      await loadAdminData();
+    } catch (error) {
+      setFeedback(
+        error.response?.data?.message || "Khong the duyet don hang luc nay.",
+      );
+    } finally {
+      setOrderActionLoadingId("");
+    }
+  }
+
   async function handleCategoryImageUpload(event) {
     const file = event.target.files?.[0];
 
@@ -346,16 +423,16 @@ function Admin() {
           ...headers(session.token),
           headers: {
             ...headers(session.token).headers,
-            "Content-Type": "multipart/form-data"
-          }
-        }
+            "Content-Type": "multipart/form-data",
+          },
+        },
       );
 
       updateCategoryForm("image", response.data.file.url);
       setFeedback("Upload anh danh muc thanh cong.");
     } catch (error) {
       setFeedback(
-        error.response?.data?.message || "Khong the upload anh danh muc."
+        error.response?.data?.message || "Khong the upload anh danh muc.",
       );
     } finally {
       setUploadingCategoryImage(false);
@@ -388,9 +465,9 @@ function Admin() {
             ...headers(session.token),
             headers: {
               ...headers(session.token).headers,
-              "Content-Type": "multipart/form-data"
-            }
-          }
+              "Content-Type": "multipart/form-data",
+            },
+          },
         );
 
         uploadedUrls.push(response.data.file.url);
@@ -403,11 +480,14 @@ function Admin() {
             .filter(Boolean)
         : [];
 
-      updateProductForm("images", [...existingUrls, ...uploadedUrls].join(", "));
+      updateProductForm(
+        "images",
+        [...existingUrls, ...uploadedUrls].join(", "),
+      );
       setFeedback("Upload anh san pham thanh cong.");
     } catch (error) {
       setFeedback(
-        error.response?.data?.message || "Khong the upload anh san pham."
+        error.response?.data?.message || "Khong the upload anh san pham.",
       );
     } finally {
       setUploadingProductImages(false);
@@ -416,7 +496,8 @@ function Admin() {
   }
 
   function handleLogout() {
-    localStorage.removeItem("auth_demo_session");
+    disconnectSocket();
+    clearStoredSession();
     navigate("/login");
   }
 
@@ -434,7 +515,7 @@ function Admin() {
                 Quan tri he thong
               </p>
               <h1 className="text-4xl leading-none font-semibold md:text-6xl">
-                Admin dashboard cho category va product.
+                Admin dashboard cho category, product va don hang.
               </h1>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -457,19 +538,32 @@ function Admin() {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 p-5">
               <p className="text-sm text-[#8b6243]">Danh muc</p>
-              <strong className="mt-2 block text-3xl">{categories.length}</strong>
+              <strong className="mt-2 block text-3xl">
+                {categories.length}
+              </strong>
             </div>
             <div className="rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 p-5">
               <p className="text-sm text-[#8b6243]">San pham</p>
               <strong className="mt-2 block text-3xl">{products.length}</strong>
             </div>
             <div className="rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 p-5">
-              <p className="text-sm text-[#8b6243]">Noi bat</p>
+              <p className="text-sm text-[#8b6243]">Don hang</p>
+              <strong className="mt-2 block text-3xl">{orders.length}</strong>
+            </div>
+            <div className="rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 p-5">
+              <p className="text-sm text-[#8b6243]">Cho duyet</p>
               <strong className="mt-2 block text-3xl">
-                {products.filter((product) => product.isFeatured).length}
+                {
+                  orders.filter(
+                    (order) =>
+                      order.orderStatus !== "shipping" &&
+                      order.orderStatus !== "completed" &&
+                      order.orderStatus !== "cancelled",
+                  ).length
+                }
               </strong>
             </div>
           </div>
@@ -524,20 +618,40 @@ function Admin() {
                 </div>
                 <form className="grid gap-4" onSubmit={handleCategorySubmit}>
                   <Field label="Ten danh muc">
-                    <input className={inputClassName()} value={categoryForm.name} onChange={(event) => updateCategoryForm("name", event.target.value)} required />
+                    <input
+                      className={inputClassName()}
+                      value={categoryForm.name}
+                      onChange={(event) =>
+                        updateCategoryForm("name", event.target.value)
+                      }
+                      required
+                    />
                   </Field>
                   <Field label="Mo ta">
-                    <textarea className={`${inputClassName()} min-h-28`} value={categoryForm.description} onChange={(event) => updateCategoryForm("description", event.target.value)} />
+                    <textarea
+                      className={`${inputClassName()} min-h-28`}
+                      value={categoryForm.description}
+                      onChange={(event) =>
+                        updateCategoryForm("description", event.target.value)
+                      }
+                    />
                   </Field>
                   <Field label="Anh URL">
-                    <input className={inputClassName()} value={categoryForm.image} onChange={(event) => updateCategoryForm("image", event.target.value)} />
+                    <input
+                      className={inputClassName()}
+                      value={categoryForm.image}
+                      onChange={(event) =>
+                        updateCategoryForm("image", event.target.value)
+                      }
+                    />
                   </Field>
                   <div className="rounded-2xl border border-dashed border-[rgba(95,63,42,0.18)] bg-white/70 p-4">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
                         <p className="font-semibold">Upload anh tu may tinh</p>
                         <p className="text-sm text-[#6a564b]">
-                          File se duoc luu tren Cloudinary trong folder `categories`.
+                          File se duoc luu tren Cloudinary trong folder
+                          `categories`.
                         </p>
                       </div>
                       <label className="cursor-pointer rounded-full bg-[#2f241f] px-4 py-2.5 text-sm font-semibold text-[#fff8f0]">
@@ -561,23 +675,57 @@ function Admin() {
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
                     <Field label="Danh muc cha">
-                      <select className={inputClassName()} value={categoryForm.parentCategory} onChange={(event) => updateCategoryForm("parentCategory", event.target.value)}>
+                      <select
+                        className={inputClassName()}
+                        value={categoryForm.parentCategory}
+                        onChange={(event) =>
+                          updateCategoryForm(
+                            "parentCategory",
+                            event.target.value,
+                          )
+                        }
+                      >
                         <option value="">Khong co</option>
-                        {categories.filter((item) => item._id !== categoryForm.id).map((item) => (
-                          <option key={item._id} value={item._id}>{item.name}</option>
-                        ))}
+                        {categories
+                          .filter((item) => item._id !== categoryForm.id)
+                          .map((item) => (
+                            <option key={item._id} value={item._id}>
+                              {item.name}
+                            </option>
+                          ))}
                       </select>
                     </Field>
                     <Field label="Thu tu">
-                      <input className={inputClassName()} type="number" value={categoryForm.sortOrder} onChange={(event) => updateCategoryForm("sortOrder", event.target.value)} />
+                      <input
+                        className={inputClassName()}
+                        type="number"
+                        value={categoryForm.sortOrder}
+                        onChange={(event) =>
+                          updateCategoryForm("sortOrder", event.target.value)
+                        }
+                      />
                     </Field>
                   </div>
                   <label className="flex items-center gap-3 rounded-2xl bg-white/70 px-4 py-3">
-                    <input type="checkbox" checked={categoryForm.isActive} onChange={(event) => updateCategoryForm("isActive", event.target.checked)} />
+                    <input
+                      type="checkbox"
+                      checked={categoryForm.isActive}
+                      onChange={(event) =>
+                        updateCategoryForm("isActive", event.target.checked)
+                      }
+                    />
                     <span>Dang hoat dong</span>
                   </label>
-                  <button type="submit" className="rounded-2xl bg-[#2f241f] px-4 py-4 font-bold text-[#fff8f0] disabled:opacity-70" disabled={submitting}>
-                    {submitting ? "Dang luu..." : categoryForm.id ? "Cap nhat danh muc" : "Tao danh muc"}
+                  <button
+                    type="submit"
+                    className="rounded-2xl bg-[#2f241f] px-4 py-4 font-bold text-[#fff8f0] disabled:opacity-70"
+                    disabled={submitting}
+                  >
+                    {submitting
+                      ? "Dang luu..."
+                      : categoryForm.id
+                        ? "Cap nhat danh muc"
+                        : "Tao danh muc"}
                   </button>
                 </form>
               </div>
@@ -598,56 +746,185 @@ function Admin() {
                 <form className="grid gap-4" onSubmit={handleProductSubmit}>
                   <div className="grid gap-4 md:grid-cols-2">
                     <Field label="SKU">
-                      <input className={inputClassName()} value={productForm.sku} onChange={(event) => updateProductForm("sku", event.target.value)} required />
+                      <input
+                        className={inputClassName()}
+                        value={productForm.sku}
+                        onChange={(event) =>
+                          updateProductForm("sku", event.target.value)
+                        }
+                        required
+                      />
                     </Field>
                     <Field label="Ten san pham">
-                      <input className={inputClassName()} value={productForm.name} onChange={(event) => updateProductForm("name", event.target.value)} required />
+                      <input
+                        className={inputClassName()}
+                        value={productForm.name}
+                        onChange={(event) =>
+                          updateProductForm("name", event.target.value)
+                        }
+                        required
+                      />
                     </Field>
                   </div>
                   <Field label="Mo ta ngan">
-                    <textarea className={`${inputClassName()} min-h-24`} value={productForm.shortDescription} onChange={(event) => updateProductForm("shortDescription", event.target.value)} />
+                    <textarea
+                      className={`${inputClassName()} min-h-24`}
+                      value={productForm.shortDescription}
+                      onChange={(event) =>
+                        updateProductForm(
+                          "shortDescription",
+                          event.target.value,
+                        )
+                      }
+                    />
                   </Field>
                   <Field label="Mo ta chi tiet">
-                    <textarea className={`${inputClassName()} min-h-32`} value={productForm.description} onChange={(event) => updateProductForm("description", event.target.value)} />
+                    <textarea
+                      className={`${inputClassName()} min-h-32`}
+                      value={productForm.description}
+                      onChange={(event) =>
+                        updateProductForm("description", event.target.value)
+                      }
+                    />
                   </Field>
                   <div className="grid gap-4 md:grid-cols-3">
                     <Field label="Chat lieu">
-                      <input className={inputClassName()} value={productForm.material} onChange={(event) => updateProductForm("material", event.target.value)} />
+                      <input
+                        className={inputClassName()}
+                        value={productForm.material}
+                        onChange={(event) =>
+                          updateProductForm("material", event.target.value)
+                        }
+                      />
                     </Field>
                     <Field label="Phong cach">
-                      <input className={inputClassName()} value={productForm.style} onChange={(event) => updateProductForm("style", event.target.value)} />
+                      <input
+                        className={inputClassName()}
+                        value={productForm.style}
+                        onChange={(event) =>
+                          updateProductForm("style", event.target.value)
+                        }
+                      />
                     </Field>
                     <Field label="Mau sac">
-                      <input className={inputClassName()} value={productForm.color} onChange={(event) => updateProductForm("color", event.target.value)} />
+                      <input
+                        className={inputClassName()}
+                        value={productForm.color}
+                        onChange={(event) =>
+                          updateProductForm("color", event.target.value)
+                        }
+                      />
                     </Field>
                   </div>
                   <div className="grid gap-4 md:grid-cols-4">
-                    <Field label="Dai"><input className={inputClassName()} type="number" value={productForm.length} onChange={(event) => updateProductForm("length", event.target.value)} /></Field>
-                    <Field label="Rong"><input className={inputClassName()} type="number" value={productForm.width} onChange={(event) => updateProductForm("width", event.target.value)} /></Field>
-                    <Field label="Cao"><input className={inputClassName()} type="number" value={productForm.height} onChange={(event) => updateProductForm("height", event.target.value)} /></Field>
+                    <Field label="Dai">
+                      <input
+                        className={inputClassName()}
+                        type="number"
+                        value={productForm.length}
+                        onChange={(event) =>
+                          updateProductForm("length", event.target.value)
+                        }
+                      />
+                    </Field>
+                    <Field label="Rong">
+                      <input
+                        className={inputClassName()}
+                        type="number"
+                        value={productForm.width}
+                        onChange={(event) =>
+                          updateProductForm("width", event.target.value)
+                        }
+                      />
+                    </Field>
+                    <Field label="Cao">
+                      <input
+                        className={inputClassName()}
+                        type="number"
+                        value={productForm.height}
+                        onChange={(event) =>
+                          updateProductForm("height", event.target.value)
+                        }
+                      />
+                    </Field>
                     <Field label="Don vi">
-                      <select className={inputClassName()} value={productForm.unit} onChange={(event) => updateProductForm("unit", event.target.value)}>
+                      <select
+                        className={inputClassName()}
+                        value={productForm.unit}
+                        onChange={(event) =>
+                          updateProductForm("unit", event.target.value)
+                        }
+                      >
                         <option value="cm">cm</option>
                         <option value="m">m</option>
                       </select>
                     </Field>
                   </div>
                   <div className="grid gap-4 md:grid-cols-3">
-                    <Field label="Gia ban"><input className={inputClassName()} type="number" value={productForm.price} onChange={(event) => updateProductForm("price", event.target.value)} required /></Field>
-                    <Field label="Gia so sanh"><input className={inputClassName()} type="number" value={productForm.compareAtPrice} onChange={(event) => updateProductForm("compareAtPrice", event.target.value)} /></Field>
-                    <Field label="Ton kho"><input className={inputClassName()} type="number" value={productForm.quantityInStock} onChange={(event) => updateProductForm("quantityInStock", event.target.value)} /></Field>
+                    <Field label="Gia ban">
+                      <input
+                        className={inputClassName()}
+                        type="number"
+                        value={productForm.price}
+                        onChange={(event) =>
+                          updateProductForm("price", event.target.value)
+                        }
+                        required
+                      />
+                    </Field>
+                    <Field label="Gia so sanh">
+                      <input
+                        className={inputClassName()}
+                        type="number"
+                        value={productForm.compareAtPrice}
+                        onChange={(event) =>
+                          updateProductForm(
+                            "compareAtPrice",
+                            event.target.value,
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Ton kho">
+                      <input
+                        className={inputClassName()}
+                        type="number"
+                        value={productForm.quantityInStock}
+                        onChange={(event) =>
+                          updateProductForm(
+                            "quantityInStock",
+                            event.target.value,
+                          )
+                        }
+                      />
+                    </Field>
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
                     <Field label="Danh muc">
-                      <select className={inputClassName()} value={productForm.category} onChange={(event) => updateProductForm("category", event.target.value)} required>
+                      <select
+                        className={inputClassName()}
+                        value={productForm.category}
+                        onChange={(event) =>
+                          updateProductForm("category", event.target.value)
+                        }
+                        required
+                      >
                         <option value="">Chon danh muc</option>
                         {categories.map((category) => (
-                          <option key={category._id} value={category._id}>{category.name}</option>
+                          <option key={category._id} value={category._id}>
+                            {category.name}
+                          </option>
                         ))}
                       </select>
                     </Field>
                     <Field label="Trang thai">
-                      <select className={inputClassName()} value={productForm.status} onChange={(event) => updateProductForm("status", event.target.value)}>
+                      <select
+                        className={inputClassName()}
+                        value={productForm.status}
+                        onChange={(event) =>
+                          updateProductForm("status", event.target.value)
+                        }
+                      >
                         <option value="draft">draft</option>
                         <option value="active">active</option>
                         <option value="out_of_stock">out_of_stock</option>
@@ -656,14 +933,23 @@ function Admin() {
                     </Field>
                   </div>
                   <Field label="Images URL, cach nhau boi dau phay">
-                    <textarea className={`${inputClassName()} min-h-24`} value={productForm.images} onChange={(event) => updateProductForm("images", event.target.value)} />
+                    <textarea
+                      className={`${inputClassName()} min-h-24`}
+                      value={productForm.images}
+                      onChange={(event) =>
+                        updateProductForm("images", event.target.value)
+                      }
+                    />
                   </Field>
                   <div className="rounded-2xl border border-dashed border-[rgba(95,63,42,0.18)] bg-white/70 p-4">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
-                        <p className="font-semibold">Upload anh san pham tu may tinh</p>
+                        <p className="font-semibold">
+                          Upload anh san pham tu may tinh
+                        </p>
                         <p className="text-sm text-[#6a564b]">
-                          File se duoc luu tren Cloudinary trong folder `products`.
+                          File se duoc luu tren Cloudinary trong folder
+                          `products`.
                         </p>
                       </div>
                       <label className="cursor-pointer rounded-full bg-[#2f241f] px-4 py-2.5 text-sm font-semibold text-[#fff8f0]">
@@ -696,14 +982,34 @@ function Admin() {
                     ) : null}
                   </div>
                   <Field label="Tags, cach nhau boi dau phay">
-                    <input className={inputClassName()} value={productForm.tags} onChange={(event) => updateProductForm("tags", event.target.value)} />
+                    <input
+                      className={inputClassName()}
+                      value={productForm.tags}
+                      onChange={(event) =>
+                        updateProductForm("tags", event.target.value)
+                      }
+                    />
                   </Field>
                   <label className="flex items-center gap-3 rounded-2xl bg-white/70 px-4 py-3">
-                    <input type="checkbox" checked={productForm.isFeatured} onChange={(event) => updateProductForm("isFeatured", event.target.checked)} />
+                    <input
+                      type="checkbox"
+                      checked={productForm.isFeatured}
+                      onChange={(event) =>
+                        updateProductForm("isFeatured", event.target.checked)
+                      }
+                    />
                     <span>Danh dau noi bat</span>
                   </label>
-                  <button type="submit" className="rounded-2xl bg-[#2f241f] px-4 py-4 font-bold text-[#fff8f0] disabled:opacity-70" disabled={submitting}>
-                    {submitting ? "Dang luu..." : productForm.id ? "Cap nhat san pham" : "Tao san pham"}
+                  <button
+                    type="submit"
+                    className="rounded-2xl bg-[#2f241f] px-4 py-4 font-bold text-[#fff8f0] disabled:opacity-70"
+                    disabled={submitting}
+                  >
+                    {submitting
+                      ? "Dang luu..."
+                      : productForm.id
+                        ? "Cap nhat san pham"
+                        : "Tao san pham"}
                   </button>
                 </form>
               </div>
@@ -730,7 +1036,10 @@ function Admin() {
                   </thead>
                   <tbody>
                     {categories.map((category) => (
-                      <tr key={category._id} className="border-t border-[rgba(95,63,42,0.08)]">
+                      <tr
+                        key={category._id}
+                        className="border-t border-[rgba(95,63,42,0.08)]"
+                      >
                         <td className="py-3">
                           <div className="font-semibold">{category.name}</div>
                           <div className="text-sm text-[#6a564b]">
@@ -738,11 +1047,25 @@ function Admin() {
                           </div>
                         </td>
                         <td className="py-3 text-sm">{category.slug}</td>
-                        <td className="py-3 text-sm">{category.isActive ? "active" : "inactive"}</td>
+                        <td className="py-3 text-sm">
+                          {category.isActive ? "active" : "inactive"}
+                        </td>
                         <td className="py-3">
                           <div className="flex justify-end gap-2">
-                            <button type="button" className="rounded-full bg-[#f3e5d7] px-3 py-2 text-sm" onClick={() => fillCategoryForm(category)}>Sua</button>
-                            <button type="button" className="rounded-full bg-[#2f241f] px-3 py-2 text-sm text-[#fff8f0]" onClick={() => handleDeleteCategory(category._id)}>Xoa</button>
+                            <button
+                              type="button"
+                              className="rounded-full bg-[#f3e5d7] px-3 py-2 text-sm"
+                              onClick={() => fillCategoryForm(category)}
+                            >
+                              Sua
+                            </button>
+                            <button
+                              type="button"
+                              className="rounded-full bg-[#2f241f] px-3 py-2 text-sm text-[#fff8f0]"
+                              onClick={() => handleDeleteCategory(category._id)}
+                            >
+                              Xoa
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -761,30 +1084,58 @@ function Admin() {
               </div>
               <div className="grid gap-4">
                 {products.map((product) => (
-                  <article key={product._id} className="rounded-3xl border border-[rgba(95,63,42,0.08)] bg-white/75 p-5">
+                  <article
+                    key={product._id}
+                    className="rounded-3xl border border-[rgba(95,63,42,0.08)] bg-white/75 p-5"
+                  >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div>
                         <div className="text-sm tracking-[0.08em] text-[#8b6243] uppercase">
                           {product.category?.name || "Chua phan loai"}
                         </div>
-                        <h3 className="mt-2 text-xl font-semibold">{product.name}</h3>
+                        <h3 className="mt-2 text-xl font-semibold">
+                          {product.name}
+                        </h3>
                         <p className="mt-2 text-sm leading-7 text-[#655247]">
-                          {product.shortDescription || "San pham chua co mo ta ngan."}
+                          {product.shortDescription ||
+                            "San pham chua co mo ta ngan."}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2 text-sm text-[#5c4a40]">
-                          <span className="rounded-full bg-[#f6ecdd] px-3 py-1">SKU: {product.sku}</span>
-                          <span className="rounded-full bg-[#f6ecdd] px-3 py-1">{product.status}</span>
+                          <span className="rounded-full bg-[#f6ecdd] px-3 py-1">
+                            SKU: {product.sku}
+                          </span>
+                          <span className="rounded-full bg-[#f6ecdd] px-3 py-1">
+                            {product.status}
+                          </span>
                           {product.isFeatured ? (
-                            <span className="rounded-full bg-[#2f241f] px-3 py-1 text-[#fff8f0]">Noi bat</span>
+                            <span className="rounded-full bg-[#2f241f] px-3 py-1 text-[#fff8f0]">
+                              Noi bat
+                            </span>
                           ) : null}
                         </div>
                       </div>
                       <div className="flex min-w-[220px] flex-col items-start gap-3 lg:items-end">
-                        <strong className="text-xl">{formatCurrency(product.price)}</strong>
-                        <div className="text-sm text-[#6a564b]">Ton kho: {product.quantityInStock}</div>
+                        <strong className="text-xl">
+                          {formatCurrency(product.price)}
+                        </strong>
+                        <div className="text-sm text-[#6a564b]">
+                          Ton kho: {product.quantityInStock}
+                        </div>
                         <div className="flex gap-2">
-                          <button type="button" className="rounded-full bg-[#f3e5d7] px-3 py-2 text-sm" onClick={() => fillProductForm(product)}>Sua</button>
-                          <button type="button" className="rounded-full bg-[#2f241f] px-3 py-2 text-sm text-[#fff8f0]" onClick={() => handleDeleteProduct(product._id)}>Xoa</button>
+                          <button
+                            type="button"
+                            className="rounded-full bg-[#f3e5d7] px-3 py-2 text-sm"
+                            onClick={() => fillProductForm(product)}
+                          >
+                            Sua
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-full bg-[#2f241f] px-3 py-2 text-sm text-[#fff8f0]"
+                            onClick={() => handleDeleteProduct(product._id)}
+                          >
+                            Xoa
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -792,9 +1143,99 @@ function Admin() {
                 ))}
               </div>
             </section>
+
+            <section className="rounded-[32px] border border-[rgba(95,63,42,0.12)] bg-[rgba(255,251,245,0.88)] p-6 shadow-[0_20px_60px_rgba(79,52,35,0.08)]">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-2xl font-semibold">Quan ly don hang</h2>
+                <span className="text-sm text-[#8b6243]">
+                  {loading ? "Dang tai..." : `${orders.length} don`}
+                </span>
+              </div>
+
+              {orders.length ? (
+                <div className="grid gap-4">
+                  {orders.map((order) => {
+                    const isOrderDone =
+                      order.orderStatus === "shipping" ||
+                      order.orderStatus === "completed" ||
+                      order.orderStatus === "cancelled";
+                    const isMomoWaitingPayment =
+                      order.paymentMethod === "momo" &&
+                      order.paymentStatus !== "paid";
+                    const disableApprove =
+                      isOrderDone ||
+                      isMomoWaitingPayment ||
+                      orderActionLoadingId === order._id;
+
+                    return (
+                      <article
+                        key={order._id}
+                        className="rounded-3xl border border-[rgba(95,63,42,0.08)] bg-white/75 p-5"
+                      >
+                        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                          <div className="grid gap-2">
+                            <div className="text-sm tracking-[0.08em] text-[#8b6243] uppercase">
+                              {order.orderCode}
+                            </div>
+                            <h3 className="text-xl font-semibold">
+                              {order.user?.fullName ||
+                                order.user?.username ||
+                                "Khach hang"}
+                            </h3>
+                            <div className="text-sm text-[#6a564b]">
+                              {order.user?.email || "Khong co email"}
+                            </div>
+                            <div className="text-sm text-[#6a564b]">
+                              Dat luc: {formatDateTime(order.placedAt)}
+                            </div>
+                            <div className="mt-1 flex flex-wrap gap-2 text-sm text-[#5c4a40]">
+                              <span className="rounded-full bg-[#f6ecdd] px-3 py-1">
+                                payment: {order.paymentStatus}
+                              </span>
+                              <span className="rounded-full bg-[#f6ecdd] px-3 py-1">
+                                status: {order.orderStatus}
+                              </span>
+                              <span className="rounded-full bg-[#f6ecdd] px-3 py-1">
+                                {order.items?.length || 0} san pham
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex min-w-[250px] flex-col items-start gap-3 xl:items-end">
+                            <strong className="text-xl">
+                              {formatCurrency(order.totalAmount)}
+                            </strong>
+                            <button
+                              type="button"
+                              className="rounded-full bg-[#2f241f] px-4 py-2 text-sm text-[#fff8f0] disabled:cursor-not-allowed disabled:opacity-60"
+                              onClick={() => handleApproveOrder(order._id)}
+                              disabled={disableApprove}
+                            >
+                              {orderActionLoadingId === order._id
+                                ? "Dang duyet..."
+                                : isOrderDone
+                                  ? "Da duyet"
+                                  : isMomoWaitingPayment
+                                    ? "Cho thanh toan"
+                                    : "Duyet don"}
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-[rgba(95,63,42,0.2)] bg-white/70 p-4 text-sm text-[#6a564b]">
+                  Chua co don hang nao.
+                </div>
+              )}
+            </section>
           </div>
         </section>
       </div>
+
+      <AdminChatBubble user={session.user} token={session.token} />
     </main>
   );
 }

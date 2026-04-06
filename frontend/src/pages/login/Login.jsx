@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { clearStoredSession, saveStoredSession } from "../../utils/storefront";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
 const loginInitialState = {
   emailOrUsername: "",
@@ -18,18 +20,35 @@ const registerInitialState = {
   phone: "",
 };
 
+const otpInitialState = {
+  code: "",
+};
+
 function inputClassName() {
   return "w-full rounded-2xl border border-[#d8c4ae] bg-white/85 px-4 py-4 text-[#2f241f] outline-none transition focus:border-[#8c5f3f] focus:shadow-[0_0_0_4px_rgba(140,95,63,0.12)]";
 }
 
 function Login() {
   const navigate = useNavigate();
+  const googleButtonRef = useRef(null);
   const [mode, setMode] = useState("login");
   const [loginForm, setLoginForm] = useState(loginInitialState);
   const [registerForm, setRegisterForm] = useState(registerInitialState);
+  const [otpForm, setOtpForm] = useState(otpInitialState);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleButtonReady, setGoogleButtonReady] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [session, setSession] = useState(null);
+  const [googleChallenge, setGoogleChallenge] = useState(null);
+  const [googleCredential, setGoogleCredential] = useState("");
+
+  function resetGoogleFlow(nextMode = "login") {
+    setMode(nextMode);
+    setGoogleChallenge(null);
+    setGoogleCredential("");
+    setOtpForm(otpInitialState);
+  }
 
   async function handleLogin(event) {
     event.preventDefault();
@@ -43,8 +62,9 @@ function Login() {
       );
       setSession(data);
       setFeedback("Dang nhap thanh cong! Chao mung ban quay tro lai.");
-      localStorage.setItem("auth_demo_session", JSON.stringify(data));
+      saveStoredSession(data);
       setLoginForm(loginInitialState);
+      resetGoogleFlow("login");
       navigate("/");
     } catch (error) {
       setFeedback(
@@ -68,8 +88,9 @@ function Login() {
       );
       setSession(data);
       setFeedback("Dang ky thanh cong! Hay bat dau mua sam ngay.");
-      localStorage.setItem("auth_demo_session", JSON.stringify(data));
+      saveStoredSession(data);
       setRegisterForm(registerInitialState);
+      resetGoogleFlow("login");
     } catch (error) {
       setFeedback(
         error.response?.data?.message ||
@@ -87,9 +108,154 @@ function Login() {
     }));
   }
 
+  async function requestGoogleOtp(credential, successMessage) {
+    setGoogleLoading(true);
+    setFeedback("");
+
+    try {
+      const { data } = await axios.post(
+        `${API_BASE_URL}/api/auth/google/request-otp`,
+        { credential },
+      );
+
+      setGoogleCredential(credential);
+      setGoogleChallenge(data);
+      setOtpForm(otpInitialState);
+      setMode("otp");
+      setFeedback(successMessage || data.message);
+    } catch (error) {
+      setFeedback(
+        error.response?.data?.message ||
+          "Khong the gui OTP tu dang nhap Google.",
+      );
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
+
+  const handleGoogleCredential = useEffectEvent(async (response) => {
+    if (!response?.credential) {
+      setFeedback("Khong nhan duoc thong tin dang nhap Google.");
+      return;
+    }
+
+    await requestGoogleOtp(response.credential);
+  });
+
+  useEffect(() => {
+    if (mode !== "login") {
+      return undefined;
+    }
+
+    if (!GOOGLE_CLIENT_ID || !googleButtonRef.current) {
+      return undefined;
+    }
+
+    let isMounted = true;
+    let scriptNode = null;
+    setGoogleButtonReady(false);
+
+    function renderGoogleButton() {
+      if (
+        !isMounted ||
+        !window.google?.accounts?.id ||
+        !googleButtonRef.current
+      ) {
+        return;
+      }
+
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredential,
+      });
+
+      googleButtonRef.current.innerHTML = "";
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: "outline",
+        size: "large",
+        shape: "pill",
+        text: "signin_with",
+        width: 360,
+      });
+      setGoogleButtonReady(true);
+    }
+
+    if (window.google?.accounts?.id) {
+      renderGoogleButton();
+    } else {
+      scriptNode = document.querySelector(
+        'script[src="https://accounts.google.com/gsi/client"]',
+      );
+
+      if (!scriptNode) {
+        scriptNode = document.createElement("script");
+        scriptNode.src = "https://accounts.google.com/gsi/client";
+        scriptNode.async = true;
+        scriptNode.defer = true;
+        document.head.appendChild(scriptNode);
+      }
+
+      scriptNode.addEventListener("load", renderGoogleButton);
+    }
+
+    return () => {
+      isMounted = false;
+
+      if (scriptNode) {
+        scriptNode.removeEventListener("load", renderGoogleButton);
+      }
+    };
+  }, [mode]);
+
+  async function handleVerifyOtp(event) {
+    event.preventDefault();
+
+    if (!googleChallenge?.challengeId) {
+      setFeedback("Phien dang nhap Google da het. Vui long thu lai.");
+      resetGoogleFlow("login");
+      return;
+    }
+
+    setLoading(true);
+    setFeedback("");
+
+    try {
+      const { data } = await axios.post(
+        `${API_BASE_URL}/api/auth/google/verify-otp`,
+        {
+          challengeId: googleChallenge.challengeId,
+          otp: otpForm.code,
+        },
+      );
+
+      setSession(data);
+      setFeedback("Dang nhap Google thanh cong.");
+      saveStoredSession(data);
+      resetGoogleFlow("login");
+      navigate("/");
+    } catch (error) {
+      setFeedback(
+        error.response?.data?.message || "Khong the xac minh OTP.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResendOtp() {
+    if (!googleCredential) {
+      setFeedback("Khong con du lieu dang nhap Google. Vui long thu lai.");
+      resetGoogleFlow("login");
+      return;
+    }
+
+    await requestGoogleOtp(googleCredential, "Da gui lai OTP moi.");
+  }
+
   function handleLogout() {
-    localStorage.removeItem("auth_demo_session");
+    clearStoredSession();
     setSession(null);
+    resetGoogleFlow("login");
     setFeedback("Ban da dang xuat.");
   }
 
@@ -136,11 +302,11 @@ function Login() {
             <button
               type="button"
               className={`rounded-full px-4 py-4 font-bold transition ${
-                mode === "login"
+                mode === "login" || mode === "otp"
                   ? "bg-[#2f241f] text-[#fff8f2]"
                   : "bg-transparent text-[#7a5b47] hover:-translate-y-0.5"
               }`}
-              onClick={() => setMode("login")}
+              onClick={() => resetGoogleFlow("login")}
             >
               Dang nhap
             </button>
@@ -151,7 +317,7 @@ function Login() {
                   ? "bg-[#2f241f] text-[#fff8f2]"
                   : "bg-transparent text-[#7a5b47] hover:-translate-y-0.5"
               }`}
-              onClick={() => setMode("register")}
+              onClick={() => resetGoogleFlow("register")}
             >
               Dang ky
             </button>
@@ -194,6 +360,85 @@ function Login() {
                 disabled={loading}
               >
                 {loading ? "Dang xu ly..." : "Dang nhap ngay"}
+              </button>
+
+              <div className="mt-2 flex items-center gap-3 text-sm text-[#866b5b]">
+                <span className="h-px flex-1 bg-[rgba(129,95,66,0.18)]" />
+                <span>hoac tiep tuc voi Google</span>
+                <span className="h-px flex-1 bg-[rgba(129,95,66,0.18)]" />
+              </div>
+
+              {GOOGLE_CLIENT_ID ? (
+                <div className="mt-1 rounded-[22px] border border-[rgba(129,95,66,0.12)] bg-[#fffaf5] p-4">
+                  <div
+                    ref={googleButtonRef}
+                    className="flex min-h-[44px] items-center justify-center"
+                  />
+                  {!googleButtonReady ? (
+                    <p className="mt-3 text-center text-sm text-[#7a5b47]">
+                      Dang tai Google Sign-In...
+                    </p>
+                  ) : null}
+                  {googleLoading ? (
+                    <p className="mt-3 text-center text-sm text-[#7a5b47]">
+                      Dang gui OTP den email cua ban...
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="rounded-2xl bg-[#fff6ea] px-4 py-3 text-sm text-[#734d36]">
+                  Chua tim thay `VITE_GOOGLE_CLIENT_ID` de hien thi dang nhap
+                  Google.
+                </p>
+              )}
+            </form>
+          ) : mode === "otp" ? (
+            <form className="mt-6 grid gap-4" onSubmit={handleVerifyOtp}>
+              <div className="rounded-[20px] border border-[rgba(129,95,66,0.15)] bg-[#fff6ea] p-5">
+                <h2 className="text-2xl font-semibold text-[#2f241f]">
+                  Nhap ma OTP
+                </h2>
+                <p className="mt-3 text-sm leading-7 text-[#6a544a]">
+                  Chung toi da gui ma xac minh toi{" "}
+                  <strong>{googleChallenge?.email || "email cua ban"}</strong>.
+                  Ban chi dang nhap thanh cong sau khi OTP dung.
+                </p>
+              </div>
+
+              <label className="grid gap-2 text-sm font-semibold text-[#5f493d]">
+                Ma OTP
+                <input
+                  className={inputClassName()}
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={otpForm.code}
+                  onChange={(event) =>
+                    updateForm(
+                      setOtpForm,
+                      "code",
+                      event.target.value.replace(/\D/g, ""),
+                    )
+                  }
+                  placeholder="Nhap ma OTP gom 6 chu so"
+                  required
+                />
+              </label>
+
+              <button
+                className="mt-2 rounded-2xl bg-[linear-gradient(135deg,#8c5f3f,#d87b38)] px-4 py-4 font-bold text-[#fffaf4] transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70"
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? "Dang xac minh..." : "Xac minh va dang nhap"}
+              </button>
+
+              <button
+                type="button"
+                className="rounded-2xl border border-[#d8c4ae] bg-white/80 px-4 py-4 font-bold text-[#6a544a] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={handleResendOtp}
+                disabled={googleLoading}
+              >
+                {googleLoading ? "Dang gui lai OTP..." : "Gui lai OTP"}
               </button>
             </form>
           ) : (

@@ -70,10 +70,40 @@ const orderSchema = new mongoose.Schema(
       enum: ["cod", "bank_transfer", "momo", "vnpay"],
       default: "cod"
     },
+    paymentProvider: {
+      type: String,
+      default: ""
+    },
     paymentStatus: {
       type: String,
       enum: ["pending", "paid", "failed", "refunded"],
       default: "pending"
+    },
+    paymentReference: {
+      type: String,
+      default: "",
+      trim: true
+    },
+    paymentRedirectUrl: {
+      type: String,
+      default: ""
+    },
+    paymentTransactionId: {
+      type: String,
+      default: "",
+      trim: true
+    },
+    paymentResponseCode: {
+      type: Number,
+      default: null
+    },
+    paymentMessage: {
+      type: String,
+      default: ""
+    },
+    paymentProviderData: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null
     },
     orderStatus: {
       type: String,

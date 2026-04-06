@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import StoreHeader from "../../components/StoreHeader";
 import {
   API_BASE_URL,
   fetchJson,
@@ -92,6 +93,8 @@ function CategoryProducts() {
   return (
     <main className="min-h-screen px-3 py-4 text-[#2f241f] md:px-6 md:py-6">
       <section className="mx-auto w-full max-w-[1180px] rounded-[32px] border border-[rgba(95,63,42,0.12)] bg-[rgba(255,251,245,0.82)] p-5 shadow-[0_20px_60px_rgba(79,52,35,0.08)] md:p-6">
+        <StoreHeader />
+
         <div className="mb-6 flex flex-wrap gap-3 text-sm">
           <Link className="rounded-full bg-white/75 px-4 py-2 no-underline" to="/">
             Trang chu
