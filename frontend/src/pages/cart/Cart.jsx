@@ -255,17 +255,18 @@ function Cart() {
                       return (
                         <article
                           key={item.product._id}
-                          className="grid gap-4 rounded-[28px] border border-[rgba(95,63,42,0.1)] bg-white/75 p-5 md:grid-cols-[140px_1fr]"
+                          className="grid items-start gap-4 rounded-[28px] border border-[rgba(95,63,42,0.1)] bg-white/75 p-5 md:grid-cols-[140px_minmax(0,1fr)]"
                         >
-                          <div className="overflow-hidden rounded-[22px] bg-[#f3e5d7]">
+                          <div className="relative aspect-[4/3] overflow-hidden rounded-[22px] bg-[#f3e5d7] md:h-[140px] md:w-[140px] md:aspect-square">
                             {image ? (
                               <img
-                                className="block aspect-square h-full w-full object-cover"
+                                className="block h-full w-full object-cover"
                                 src={image}
                                 alt={item.product.name}
+                                loading="lazy"
                               />
                             ) : (
-                              <div className="flex aspect-square items-end bg-[linear-gradient(135deg,rgba(164,116,78,0.28),rgba(245,222,194,0.7))] p-4">
+                              <div className="flex h-full w-full items-end bg-[linear-gradient(135deg,rgba(164,116,78,0.28),rgba(245,222,194,0.7))] p-4">
                                 <span className="rounded-full bg-white/75 px-3 py-2 text-sm font-bold">
                                   {item.product.name}
                                 </span>
@@ -273,7 +274,7 @@ function Cart() {
                             )}
                           </div>
 
-                          <div className="flex flex-col gap-4">
+                          <div className="min-w-0 flex flex-col gap-4">
                             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                               <div>
                                 <Link
