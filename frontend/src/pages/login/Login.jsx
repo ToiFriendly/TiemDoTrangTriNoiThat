@@ -264,34 +264,34 @@ function Login() {
       <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl gap-6 md:grid-cols-[1.1fr_0.9fr]">
         <section className="flex flex-col justify-center rounded-[28px] p-6 md:p-12">
           <p className="mb-4 text-xs font-semibold tracking-[0.22em] text-[#8c5f3f] uppercase">
-            Tiem Do Trang Tri Noi That
+            Tiệm Đồ Trang Trí Nội Thất
           </p>
           <h1 className="max-w-[12ch] text-5xl leading-none font-semibold md:text-7xl">
-            Kien tao khong gian song mo uoc cua ban.
+            Kiến tạo không gian sống mơ ước của bạn.
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-8 text-[#5d483f]">
-            Dang nhap de kham pha bo suu tap do decor doc dao, tu den trang tri,
-            tranh treo tuong den nhung vat pham thu cong tinh te cho can phong
-            cua ban.
+            Đăng nhập để khám phá bộ sưu tập đồ decor độc đáo, từ đèn trang trí,
+            tranh treo tường đến những vật phẩm thủ công tinh tế cho căn phòng
+            của bạn.
           </p>
 
           <div className="mt-8 grid gap-4">
             <div className="rounded-[18px] border border-[rgba(129,95,66,0.15)] bg-white/55 px-5 py-4">
-              <strong className="block">San pham doc ban</strong>
+              <strong className="block">Sản phẩm độc bản</strong>
               <span className="mt-1 block text-[#6a544a]">
-                Do trang tri duoc tuyen chon ky luong, mang phong cach rieng.
+                Đồ trang trí được tuyển chọn kỹ lượng, mang phong cách riêng.
               </span>
             </div>
             <div className="rounded-[18px] border border-[rgba(129,95,66,0.15)] bg-white/55 px-5 py-4">
-              <strong className="block">Giao hang tan tam</strong>
+              <strong className="block">Giao hàng tận nơi</strong>
               <span className="mt-1 block text-[#6a544a]">
-                Dam bao an toan cho moi mon do de vo nhat cua ban.
+                Đảm bảo an toàn cho mỗi món đồ để vận chuyển đến nhà bạn.
               </span>
             </div>
             <div className="rounded-[18px] border border-[rgba(129,95,66,0.15)] bg-white/55 px-5 py-4">
-              <strong className="block">Uu dai thanh vien</strong>
+              <strong className="block">Ưu đãi thành viên</strong>
               <span className="mt-1 block text-[#6a544a]">
-                Nhan thong bao som nhat ve cac bo suu tap gioi han.
+                Nhận thông báo sớm nhất về các bộ sưu tập giới hạn.
               </span>
             </div>
           </div>
@@ -308,7 +308,7 @@ function Login() {
               }`}
               onClick={() => resetGoogleFlow("login")}
             >
-              Dang nhap
+              Đăng nhập
             </button>
             <button
               type="button"
@@ -319,14 +319,14 @@ function Login() {
               }`}
               onClick={() => resetGoogleFlow("register")}
             >
-              Dang ky
+              Đăng ký
             </button>
           </div>
 
           {mode === "login" ? (
             <form className="mt-6 grid gap-4" onSubmit={handleLogin}>
               <label className="grid gap-2 text-sm font-semibold text-[#5f493d]">
-                Email hoac ten dang nhap
+                Email hoặc tên đăng nhập
                 <input
                   className={inputClassName()}
                   value={loginForm.emailOrUsername}
@@ -342,7 +342,7 @@ function Login() {
                 />
               </label>
               <label className="grid gap-2 text-sm font-semibold text-[#5f493d]">
-                Mat khau
+                Mật khẩu
                 <input
                   className={inputClassName()}
                   type="password"
@@ -364,7 +364,7 @@ function Login() {
 
               <div className="mt-2 flex items-center gap-3 text-sm text-[#866b5b]">
                 <span className="h-px flex-1 bg-[rgba(129,95,66,0.18)]" />
-                <span>hoac tiep tuc voi Google</span>
+                <span>Hoặc tiếp tục với tài khoản Google</span>
                 <span className="h-px flex-1 bg-[rgba(129,95,66,0.18)]" />
               </div>
 
@@ -376,19 +376,18 @@ function Login() {
                   />
                   {!googleButtonReady ? (
                     <p className="mt-3 text-center text-sm text-[#7a5b47]">
-                      Dang tai Google Sign-In...
+                      Đang tải tài khoản Google Sign-In...
                     </p>
                   ) : null}
                   {googleLoading ? (
                     <p className="mt-3 text-center text-sm text-[#7a5b47]">
-                      Dang gui OTP den email cua ban...
+                      Đang gửi OTP đến email của bạn...
                     </p>
                   ) : null}
                 </div>
               ) : (
                 <p className="rounded-2xl bg-[#fff6ea] px-4 py-3 text-sm text-[#734d36]">
-                  Chua tim thay `VITE_GOOGLE_CLIENT_ID` de hien thi dang nhap
-                  Google.
+                  Không tìm thấy `VITE_GOOGLE_CLIENT_ID` để hiển thị đăng nhập Google.
                 </p>
               )}
             </form>
@@ -396,17 +395,17 @@ function Login() {
             <form className="mt-6 grid gap-4" onSubmit={handleVerifyOtp}>
               <div className="rounded-[20px] border border-[rgba(129,95,66,0.15)] bg-[#fff6ea] p-5">
                 <h2 className="text-2xl font-semibold text-[#2f241f]">
-                  Nhap ma OTP
+                  Nhập mã OTP
                 </h2>
                 <p className="mt-3 text-sm leading-7 text-[#6a544a]">
-                  Chung toi da gui ma xac minh toi{" "}
-                  <strong>{googleChallenge?.email || "email cua ban"}</strong>.
-                  Ban chi dang nhap thanh cong sau khi OTP dung.
+                  Chúng tôi đã gửi mã xác minh tới{" "}
+                  <strong>{googleChallenge?.email || "email của bạn"}</strong>.
+                  Bạn chỉ đăng nhập thành công sau khi OTP đúng.
                 </p>
               </div>
 
               <label className="grid gap-2 text-sm font-semibold text-[#5f493d]">
-                Ma OTP
+                Mã OTP
                 <input
                   className={inputClassName()}
                   inputMode="numeric"
@@ -444,7 +443,7 @@ function Login() {
           ) : (
             <form className="mt-6 grid gap-4" onSubmit={handleRegister}>
               <label className="grid gap-2 text-sm font-semibold text-[#5f493d]">
-                Ten nguoi dung
+                Tên người dùng
                 <input
                   className={inputClassName()}
                   value={registerForm.username}
@@ -469,7 +468,7 @@ function Login() {
                 />
               </label>
               <label className="grid gap-2 text-sm font-semibold text-[#5f493d]">
-                Mat khau
+                Mật khẩu
                 <input
                   className={inputClassName()}
                   type="password"
@@ -482,7 +481,7 @@ function Login() {
                 />
               </label>
               <label className="grid gap-2 text-sm font-semibold text-[#5f493d]">
-                Ho va ten
+                Họ và tên 
                 <input
                   className={inputClassName()}
                   value={registerForm.fullName}
@@ -493,7 +492,7 @@ function Login() {
                 />
               </label>
               <label className="grid gap-2 text-sm font-semibold text-[#5f493d]">
-                So dien thoai
+                Số điện thoại
                 <input
                   className={inputClassName()}
                   value={registerForm.phone}
@@ -522,21 +521,21 @@ function Login() {
           {session?.user ? (
             <div className="mt-4 rounded-[20px] border border-[rgba(129,95,66,0.15)] bg-[#fff6ea] p-5">
               <h2 className="text-2xl font-semibold">
-                Chao mung, {session.user.username}!
+                Chào mừng, {session.user.username}!
               </h2>
               <p className="mt-3">
-                Cam on ban da ghe tham{" "}
-                <strong>Tiem Do Trang Tri Noi That</strong>.
+                Cảm ơn bạn đã ghé thăm{" "}
+                <strong>Tiệm Đồ Trang Trí Nội Thất</strong>.
               </p>
               <p className="mt-2">
-                Hay bat dau lam moi khong gian cua ban ngay hom nay.
+                Hay bắt đầu làm mới không gian của bạn ngay hôm nay.
               </p>
               <button
                 type="button"
                 className="mt-4 rounded-2xl bg-[#f3e5d7] px-4 py-4 font-bold text-[#5a4336] transition hover:-translate-y-0.5"
                 onClick={handleLogout}
               >
-                Dang xuat
+                Đăng xuất
               </button>
             </div>
           ) : null}

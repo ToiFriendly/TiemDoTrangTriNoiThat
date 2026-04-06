@@ -46,7 +46,7 @@ function ProductCard({ product }) {
           </p>
         ) : (
           <p className="mt-3 leading-7 text-[#655247]">
-            San pham nay chua co mo ta ngan.
+            Sản phẩm này chưa có mô tả ngắn.
           </p>
         )}
 
@@ -85,9 +85,9 @@ function CategoryCard({ category }) {
       <div className="p-5">
         <h3 className="text-xl font-semibold">{category.name}</h3>
         <p className="mt-3 leading-7 text-[#655247]">
-          {category.description || "Danh muc nay chua co mo ta."}
+          {category.description || "Danh mục này chưa có mô tả."}
         </p>
-        <div className="mt-5 font-bold text-[#8b6243]">Xem san pham</div>
+        <div className="mt-5 font-bold text-[#8b6243]">Xem sản phẩm</div>
       </div>
     </Link>
   );
@@ -140,7 +140,7 @@ function Home() {
 
         const response = await fetch(`${API_BASE_URL}/api/home`);
         if (!response.ok) {
-          throw new Error("Khong the tai du lieu trang chu.");
+          throw new Error("Không thể tải dữ liệu trang chủ.");
         }
 
         const data = await response.json();
@@ -187,34 +187,34 @@ function Home() {
             className="rounded-full border border-[rgba(95,63,42,0.1)] bg-white/75 px-4 py-2.5 no-underline"
             href="#danh-muc"
           >
-            Danh muc
+            Danh mục sản phẩm
           </a>
           <a
             className="rounded-full border border-[rgba(95,63,42,0.1)] bg-white/75 px-4 py-2.5 no-underline"
             href="#noi-bat"
           >
-            Noi bat
+            Sản phẩm nổi bật
           </a>
           <a
             className="rounded-full border border-[rgba(95,63,42,0.1)] bg-white/75 px-4 py-2.5 no-underline"
             href="#moi-nhat"
           >
-            Moi nhat
+            Sản phẩm mới nhất
           </a>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="px-1 py-3">
             <p className="mb-3 text-xs tracking-[0.16em] text-[#8b6243] uppercase">
-              Khong gian song duoc chon loc tu du lieu that
+              Không gian sống được chọn lọc từ dữ liệu thực
             </p>
             <h1 className="max-w-[12ch] text-5xl leading-none font-semibold md:text-7xl">
-              Trang chu ban do trang tri noi that san sang hien thi du lieu tu
-              kho san pham cua ban.
+              Trang chủ bản đồ trang trí nội thất sẵn sàng hiển thị dữ liệu từ
+              kho sản phẩm của bạn.
             </h1>
             <p className="mt-5 max-w-[54ch] text-base leading-8 text-[#5c4a40]">
-              Giao dien nay khong dung du lieu ao. Danh muc, san pham noi bat
-              va san pham moi se chi xuat hien khi he thong co du lieu that
+              Giao diện này không sử dụng dữ liệu giả. Danh mục, sản phẩm nổi bật
+              và sản phẩm mới sẽ chỉ xuất hiện khi hệ thống có dữ liệu thật
               trong MongoDB.
             </p>
 
@@ -223,35 +223,35 @@ function Home() {
                 href="#noi-bat"
                 className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#2f241f] px-5 font-bold text-[#fff8f0] no-underline"
               >
-                Kham pha san pham
+                Khám phá sản phẩm
               </a>
               <a
                 href="#moi-nhat"
                 className="inline-flex min-h-12 items-center justify-center rounded-full border border-[rgba(95,63,42,0.18)] bg-white/80 px-5 font-bold no-underline"
               >
-                Xem bo suu tap moi
+                Xem bộ sưu tập mới
               </a>
             </div>
 
             <div className="mt-7 grid gap-3 md:grid-cols-3">
               <div className="grid gap-1 rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 p-5">
                 <strong className="text-3xl">{categories.length}</strong>
-                <span className="text-[#6a564b]">danh muc dang hien thi</span>
+                <span className="text-[#6a564b]">danh mục đang hiển thị</span>
               </div>
               <div className="grid gap-1 rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 p-5">
                 <strong className="text-3xl">{featuredProducts.length}</strong>
-                <span className="text-[#6a564b]">san pham noi bat</span>
+                <span className="text-[#6a564b]">sản phẩm nổi bật</span>
               </div>
               <div className="grid gap-1 rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 p-5">
                 <strong className="text-3xl">{latestProducts.length}</strong>
-                <span className="text-[#6a564b]">san pham moi nhat</span>
+                <span className="text-[#6a564b]">sản phẩm mới nhất</span>
               </div>
             </div>
           </div>
 
           <aside className="rounded-[28px] bg-[linear-gradient(180deg,rgba(63,42,31,0.96),rgba(89,63,48,0.92))] p-6 text-[#f8efe5]">
             <p className="mb-3 text-xs tracking-[0.16em] uppercase">
-              Diem nhan hien tai
+              Điểm nhấn hiện tại
             </p>
             {highlightProduct ? (
               <div className="grid gap-6 rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 p-6 text-[#2f241f]">
@@ -312,7 +312,7 @@ function Home() {
       >
         {loading ? (
           <SectionState
-            title="Dang tai san pham noi bat"
+            title="Dang tai sản phẩm nổi bật"
             description="Vui long doi trong giay lat."
           />
         ) : featuredProducts.length ? (

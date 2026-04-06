@@ -83,11 +83,11 @@ function MomoReturn() {
 
         <div className="rounded-[28px] border border-[rgba(95,63,42,0.1)] bg-white/75 p-6">
           <p className="text-xs tracking-[0.16em] text-[#8b6243] uppercase">
-            Ket qua thanh toan MoMo
+            Kết quả thanh toán MoMo
           </p>
           <h1 className="mt-3 text-4xl font-semibold md:text-5xl">
             {loading
-              ? "Dang cap nhat ket qua..."
+              ? "Đang cập nhật kết quả..."
               : isSuccess
                 ? "Thanh toan thanh cong"
                 : "Thanh toan chua hoan tat"}
@@ -98,15 +98,15 @@ function MomoReturn() {
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <div className="rounded-3xl bg-[#fff8f0] p-4">
-              <div className="text-sm text-[#8b6243]">Ma don hang</div>
+              <div className="text-sm text-[#8b6243]">Mã đơn hàng</div>
               <div className="mt-2 text-xl font-semibold">
-                {order?.orderCode || orderCode || "Dang cap nhat"}
+                {order?.orderCode || orderCode || "Đang cập nhật"}
               </div>
             </div>
             <div className="rounded-3xl bg-[#fff8f0] p-4">
-              <div className="text-sm text-[#8b6243]">Ma giao dich MoMo</div>
+              <div className="text-sm text-[#8b6243]">Mã giao dịch MoMo</div>
               <div className="mt-2 text-xl font-semibold">
-                {order?.paymentTransactionId || transId || "Chua co"}
+                {order?.paymentTransactionId || transId || "Chưa có"}
               </div>
             </div>
           </div>
@@ -115,11 +115,11 @@ function MomoReturn() {
             <div className="mt-6 grid gap-4 rounded-[28px] border border-[rgba(95,63,42,0.1)] bg-[#fffaf5] p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className="text-sm text-[#8b6243]">Trang thai don hang</div>
+                  <div className="text-sm text-[#8b6243]">Trạng thái đơn hàng</div>
                   <div className="mt-1 text-2xl font-semibold">{order.orderStatus}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm text-[#8b6243]">Tong thanh toan</div>
+                  <div className="text-sm text-[#8b6243]">Tổng thanh toán</div>
                   <div className="mt-1 text-2xl font-semibold">
                     {formatCurrency(order.totalAmount)}
                   </div>
@@ -128,11 +128,11 @@ function MomoReturn() {
 
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="rounded-3xl bg-white p-4">
-                  <div className="text-sm text-[#8b6243]">Thanh toan</div>
+                  <div className="text-sm text-[#8b6243]">Thanh toán</div>
                   <div className="mt-2 font-semibold">{order.paymentStatus}</div>
                 </div>
                 <div className="rounded-3xl bg-white p-4">
-                  <div className="text-sm text-[#8b6243]">Dat luc</div>
+                  <div className="text-sm text-[#8b6243]">Đặt lúc</div>
                   <div className="mt-2 font-semibold">{formatDateTime(order.placedAt)}</div>
                 </div>
               </div>
@@ -163,13 +163,13 @@ function MomoReturn() {
               to="/"
               className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#2f241f] px-5 font-bold text-[#fff8f0] no-underline"
             >
-              Ve trang chu
+              Về trang chủ
             </Link>
             <Link
               to="/gio-hang"
               className="inline-flex min-h-12 items-center justify-center rounded-full border border-[rgba(95,63,42,0.18)] bg-white/80 px-5 font-bold no-underline"
             >
-              Ve gio hang
+              Về giỏ hàng
             </Link>
           </div>
         </div>

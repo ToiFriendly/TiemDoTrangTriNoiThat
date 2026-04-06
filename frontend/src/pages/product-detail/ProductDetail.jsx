@@ -114,7 +114,7 @@ function ProductDetail() {
 
         <div className="mb-6 flex flex-wrap gap-3 text-sm">
           <Link className="rounded-full bg-white/75 px-4 py-2 no-underline" to="/">
-            Trang chu
+            Trang chủ
           </Link>
           {product?.category?.slug ? (
             <Link
@@ -128,7 +128,7 @@ function ProductDetail() {
 
         {loading ? (
           <div className="rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 p-6">
-            Dang tai chi tiet san pham...
+            Đang tải chi tiết sản phẩm...
           </div>
         ) : error ? (
           <div className="rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 p-6 text-[#8a3d2f]">
@@ -157,7 +157,7 @@ function ProductDetail() {
             <div className="grid gap-5">
               <div>
                 <p className="text-xs tracking-[0.16em] text-[#8b6243] uppercase">
-                  Chi tiet san pham
+                  Chi tiết sản phẩm
                 </p>
                 <h1 className="mt-3 text-4xl font-semibold md:text-5xl">
                   {product.name}
@@ -225,8 +225,8 @@ function ProductDetail() {
                 </div>
 
                 <p className="mt-4 text-sm leading-6 text-[#6a564b]">
-                  He thong chi kiem tra ton kho khi them vao gio. Kho se chi bi tru
-                  trong transaction luc Dat hang.
+                  Hệ thống chỉ kiểm tra tồn kho khi thêm vào giỏ. Kho sẽ chỉ bị trừ
+                  trong transaction lúc Đặt hàng.
                 </p>
 
                 {feedback ? (
