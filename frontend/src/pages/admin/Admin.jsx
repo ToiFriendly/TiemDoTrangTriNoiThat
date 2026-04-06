@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { connectSocket, disconnectSocket } from "../../utils/socket";
+import AdminChatBubble from "../../components/AdminChatBubble";
 import { clearStoredSession, formatDateTime } from "../../utils/storefront";
 
 const API_BASE_URL =
@@ -1233,6 +1234,8 @@ function Admin() {
           </div>
         </section>
       </div>
+
+      <AdminChatBubble user={session.user} token={session.token} />
     </main>
   );
 }

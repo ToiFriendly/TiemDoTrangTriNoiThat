@@ -16,6 +16,11 @@ const {
   approveOrder,
   listAdminOrders,
 } = require("../controllers/orderAdminController");
+const {
+  createAdminMessage,
+  listAdminConversations,
+  listAdminMessagesByCustomer,
+} = require("../controllers/chatController");
 
 const router = express.Router();
 
@@ -33,5 +38,9 @@ router.delete("/products/:id", deleteProduct);
 
 router.get("/orders", listAdminOrders);
 router.patch("/orders/:id/approve", approveOrder);
+
+router.get("/chat/conversations", listAdminConversations);
+router.get("/chat/messages/:customerId", listAdminMessagesByCustomer);
+router.post("/chat/messages", createAdminMessage);
 
 module.exports = router;
