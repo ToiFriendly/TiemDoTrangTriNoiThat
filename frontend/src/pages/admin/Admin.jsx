@@ -613,7 +613,7 @@ function Admin() {
                     className="rounded-full border border-[rgba(95,63,42,0.14)] px-3 py-2 text-sm"
                     onClick={resetCategoryForm}
                   >
-                    Lam moi
+                    Làm mới
                   </button>
                 </div>
                 <form className="grid gap-4" onSubmit={handleCategorySubmit}>
@@ -740,7 +740,7 @@ function Admin() {
                     className="rounded-full border border-[rgba(95,63,42,0.14)] px-3 py-2 text-sm"
                     onClick={resetProductForm}
                   >
-                    Lam moi
+                    Làm mới
                   </button>
                 </div>
                 <form className="grid gap-4" onSubmit={handleProductSubmit}>

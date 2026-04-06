@@ -203,13 +203,13 @@ function Cart() {
           <div className="rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 p-6">
             <h1 className="text-3xl font-semibold">Gio hang cua ban</h1>
             <p className="mt-4 leading-7 text-[#5c4a40]">
-              Ban can dang nhap de luu gio hang va dat hang.
+              Bạn cần đăng nhập để lưu giỏ hàng và đặt hàng.
             </p>
             <Link
               to="/login"
               className="mt-5 inline-flex min-h-12 items-center justify-center rounded-full bg-[#2f241f] px-5 font-bold text-[#fff8f0] no-underline"
             >
-              Dang nhap ngay
+              Đăng nhập ngay
             </Link>
           </div>
         ) : (
@@ -217,10 +217,10 @@ function Cart() {
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs tracking-[0.16em] text-[#8b6243] uppercase">
-                  Gio hang
+                  Giỏ hàng của bạn
                 </p>
                 <h1 className="mt-2 text-4xl font-semibold md:text-5xl">
-                  Xac nhan so luong truoc khi dat hang
+                  Xác nhận số lượng trước khi đặt hàng
                 </h1>
               </div>
 
@@ -242,7 +242,7 @@ function Cart() {
 
             {loading ? (
               <div className="rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 p-6">
-                Dang tai gio hang...
+                Đang tải giỏ hàng...
               </div>
             ) : (
               <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
@@ -255,17 +255,18 @@ function Cart() {
                       return (
                         <article
                           key={item.product._id}
-                          className="grid gap-4 rounded-[28px] border border-[rgba(95,63,42,0.1)] bg-white/75 p-5 md:grid-cols-[140px_1fr]"
+                          className="grid items-start gap-4 rounded-[28px] border border-[rgba(95,63,42,0.1)] bg-white/75 p-5 md:grid-cols-[140px_minmax(0,1fr)]"
                         >
-                          <div className="overflow-hidden rounded-[22px] bg-[#f3e5d7]">
+                          <div className="relative aspect-[4/3] overflow-hidden rounded-[22px] bg-[#f3e5d7] md:h-[140px] md:w-[140px] md:aspect-square">
                             {image ? (
                               <img
-                                className="block aspect-square h-full w-full object-cover"
+                                className="block h-full w-full object-cover"
                                 src={image}
                                 alt={item.product.name}
+                                loading="lazy"
                               />
                             ) : (
-                              <div className="flex aspect-square items-end bg-[linear-gradient(135deg,rgba(164,116,78,0.28),rgba(245,222,194,0.7))] p-4">
+                              <div className="flex h-full w-full items-end bg-[linear-gradient(135deg,rgba(164,116,78,0.28),rgba(245,222,194,0.7))] p-4">
                                 <span className="rounded-full bg-white/75 px-3 py-2 text-sm font-bold">
                                   {item.product.name}
                                 </span>
@@ -273,7 +274,7 @@ function Cart() {
                             )}
                           </div>
 
-                          <div className="flex flex-col gap-4">
+                          <div className="min-w-0 flex flex-col gap-4">
                             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                               <div>
                                 <Link
@@ -283,12 +284,12 @@ function Cart() {
                                   {item.product.name}
                                 </Link>
                                 <div className="mt-2 text-sm text-[#6a564b]">
-                                  Ton kho hien tai: {item.product.quantityInStock}
+                                  Tồn kho hiện tại: {item.product.quantityInStock}
                                 </div>
                               </div>
 
                               <div className="text-right">
-                                <div className="text-sm text-[#8b6243]">Don gia</div>
+                                <div className="text-sm text-[#8b6243]">Đơn giá</div>
                                 <strong className="text-xl">{formatCurrency(item.unitPrice)}</strong>
                               </div>
                             </div>
@@ -346,7 +347,7 @@ function Cart() {
                     })
                   ) : (
                     <div className="rounded-3xl border border-[rgba(95,63,42,0.1)] bg-white/75 p-6">
-                      Gio hang dang trong. Hay quay lai trang san pham de them mon hang.
+                      Giỏ hàng đang trống. Hay quay lại trang sản phẩm để thêm món hàng.
                     </div>
                   )}
                 </div>
@@ -354,14 +355,14 @@ function Cart() {
                 <div className="grid gap-5 rounded-[28px] border border-[rgba(95,63,42,0.1)] bg-white/75 p-5">
                   <div>
                     <p className="text-xs tracking-[0.16em] text-[#8b6243] uppercase">
-                      Dat hang
+                      Đặt hàng
                     </p>
-                    <h2 className="mt-2 text-3xl font-semibold">Thong tin giao hang</h2>
+                    <h2 className="mt-2 text-3xl font-semibold">Thông tin giao hàng</h2>
                   </div>
 
                   <div className="rounded-3xl bg-[#fff8f0] p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <span>Tong so luong</span>
+                      <span>Tổng số lượng</span>
                       <strong>{cart.totalQuantity}</strong>
                     </div>
                     <div className="mt-3 flex items-center justify-between gap-3">
@@ -380,7 +381,7 @@ function Cart() {
 
                   <form className="grid gap-4" onSubmit={handleCheckout}>
                     <label className="grid gap-2 text-sm font-semibold text-[#5f493d]">
-                      Ho va ten
+                      Họ và tên
                       <input
                         className="w-full rounded-2xl border border-[#d8c4ae] bg-white/85 px-4 py-3 outline-none"
                         value={shippingForm.fullName}
@@ -390,7 +391,7 @@ function Cart() {
                     </label>
 
                     <label className="grid gap-2 text-sm font-semibold text-[#5f493d]">
-                      So dien thoai
+                      Số điện thoại
                       <input
                         className="w-full rounded-2xl border border-[#d8c4ae] bg-white/85 px-4 py-3 outline-none"
                         value={shippingForm.phone}
@@ -400,7 +401,7 @@ function Cart() {
                     </label>
 
                     <label className="grid gap-2 text-sm font-semibold text-[#5f493d]">
-                      Dia chi
+                      Địa chỉ
                       <input
                         className="w-full rounded-2xl border border-[#d8c4ae] bg-white/85 px-4 py-3 outline-none"
                         value={shippingForm.street}
@@ -411,7 +412,7 @@ function Cart() {
 
                     <div className="grid gap-4 md:grid-cols-2">
                       <label className="grid gap-2 text-sm font-semibold text-[#5f493d]">
-                        Phuong / Xa
+                        Phường / Xã
                         <input
                           className="w-full rounded-2xl border border-[#d8c4ae] bg-white/85 px-4 py-3 outline-none"
                           value={shippingForm.ward}
@@ -419,7 +420,7 @@ function Cart() {
                         />
                       </label>
                       <label className="grid gap-2 text-sm font-semibold text-[#5f493d]">
-                        Quan / Huyen
+                        Quận / Huyện
                         <input
                           className="w-full rounded-2xl border border-[#d8c4ae] bg-white/85 px-4 py-3 outline-none"
                           value={shippingForm.district}
@@ -431,7 +432,7 @@ function Cart() {
 
                     <div className="grid gap-4 md:grid-cols-2">
                       <label className="grid gap-2 text-sm font-semibold text-[#5f493d]">
-                        Tinh / Thanh pho
+                        Tỉnh / Thành phố
                         <input
                           className="w-full rounded-2xl border border-[#d8c4ae] bg-white/85 px-4 py-3 outline-none"
                           value={shippingForm.city}
@@ -440,7 +441,7 @@ function Cart() {
                         />
                       </label>
                       <label className="grid gap-2 text-sm font-semibold text-[#5f493d]">
-                        Quoc gia
+                        Quốc gia
                         <input
                           className="w-full rounded-2xl border border-[#d8c4ae] bg-white/85 px-4 py-3 outline-none"
                           value={shippingForm.country}
@@ -450,7 +451,7 @@ function Cart() {
                     </div>
 
                     <label className="grid gap-2 text-sm font-semibold text-[#5f493d]">
-                      Ghi chu
+                      Ghi chú
                       <textarea
                         className="min-h-24 w-full rounded-2xl border border-[#d8c4ae] bg-white/85 px-4 py-3 outline-none"
                         value={note}
@@ -468,7 +469,7 @@ function Cart() {
                           checked={paymentMethod === "momo"}
                           onChange={(event) => setPaymentMethod(event.target.value)}
                         />
-                        <span>Thanh toan bang MoMo</span>
+                        <span>Thanh toán bằng MoMo</span>
                       </label>
                       <label className="flex items-center gap-3">
                         <input
@@ -478,7 +479,7 @@ function Cart() {
                           checked={paymentMethod === "cod"}
                           onChange={(event) => setPaymentMethod(event.target.value)}
                         />
-                        <span>Thanh toan khi nhan hang</span>
+                        <span>Thanh toán khi nhận hàng</span>
                       </label>
                     </div>
 
@@ -496,7 +497,7 @@ function Cart() {
                   </form>
 
                   <p className="text-sm leading-6 text-[#6a564b]">
-                    Nut Dat hang se bi disable trong luc xu ly de tranh tao nhieu transaction trung nhau.
+                    Nút Đặt hàng sẽ bị vô hiệu hóa trong lúc xử lý để tránh tạo nhiều transaction trùng nhau.
                   </p>
                 </div>
               </div>
@@ -505,11 +506,11 @@ function Cart() {
             {lastOrder ? (
               <div className="mt-6 rounded-[28px] border border-[rgba(95,63,42,0.1)] bg-white/75 p-5">
                 <p className="text-xs tracking-[0.16em] text-[#8b6243] uppercase">
-                  Don hang moi nhat
+                  Đơn hàng mới nhất
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold">{lastOrder.orderCode}</h2>
                 <p className="mt-2 text-[#5c4a40]">
-                  Dat luc {formatDateTime(lastOrder.placedAt)}.
+                  Đặt hàng lúc {formatDateTime(lastOrder.placedAt)}.
                 </p>
               </div>
             ) : null}
