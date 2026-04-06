@@ -541,7 +541,7 @@ function Admin() {
                     className="rounded-full border border-[rgba(95,63,42,0.14)] px-3 py-2 text-sm"
                     onClick={resetCategoryForm}
                   >
-                    Lam moi
+                    Làm mới
                   </button>
                 </div>
                 <form className="grid gap-4" onSubmit={handleCategorySubmit}>
@@ -596,7 +596,7 @@ function Admin() {
                   </div>
                   <label className="flex items-center gap-3 rounded-2xl bg-white/70 px-4 py-3">
                     <input type="checkbox" checked={categoryForm.isActive} onChange={(event) => updateCategoryForm("isActive", event.target.checked)} />
-                    <span>Dang hoat dong</span>
+                    <span>Đang hoạt động</span>
                   </label>
                   <button type="submit" className="rounded-2xl bg-[#2f241f] px-4 py-4 font-bold text-[#fff8f0] disabled:opacity-70" disabled={submitting}>
                     {submitting ? "Dang luu..." : categoryForm.id ? "Cap nhat danh muc" : "Tao danh muc"}
@@ -614,7 +614,7 @@ function Admin() {
                     className="rounded-full border border-[rgba(95,63,42,0.14)] px-3 py-2 text-sm"
                     onClick={resetProductForm}
                   >
-                    Lam moi
+                    Làm mới
                   </button>
                 </div>
                 <form className="grid gap-4" onSubmit={handleProductSubmit}>
@@ -685,7 +685,7 @@ function Admin() {
                       <div>
                         <p className="font-semibold">Upload anh san pham tu may tinh</p>
                         <p className="text-sm text-[#6a564b]">
-                          File se duoc luu tren Cloudinary trong folder `products`.
+                          File sẽ được lưu trên Cloudinary trong folder `products`.
                         </p>
                       </div>
                       <label className="cursor-pointer rounded-full bg-[#2f241f] px-4 py-2.5 text-sm font-semibold text-[#fff8f0]">
@@ -722,7 +722,7 @@ function Admin() {
                   </Field>
                   <label className="flex items-center gap-3 rounded-2xl bg-white/70 px-4 py-3">
                     <input type="checkbox" checked={productForm.isFeatured} onChange={(event) => updateProductForm("isFeatured", event.target.checked)} />
-                    <span>Danh dau noi bat</span>
+                    <span>Đánh dấu nổi bật</span>
                   </label>
                   <button type="submit" className="rounded-2xl bg-[#2f241f] px-4 py-4 font-bold text-[#fff8f0] disabled:opacity-70" disabled={submitting}>
                     {submitting ? "Dang luu..." : productForm.id ? "Cap nhat san pham" : "Tao san pham"}
